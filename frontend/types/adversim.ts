@@ -108,6 +108,11 @@ export type ScenarioDifficulty = "Beginner" | "Intermediate" | "SOC" | "Analyst"
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
 export type TrainingMode = "Guided" | "Blind Investigation";
 
+export type CaseChartData = {
+  mappedTactics: number[];
+  severityHeat: number[];
+};
+
 export type EvidenceEvent = {
   event_id: string;
   timestamp: string;
@@ -140,6 +145,7 @@ export type ScenarioCase = {
   expected_findings: string[];
   recommended_response: string[];
   prevention_lessons: string[];
+  chartData: CaseChartData;
 };
 
 export type CaseDebrief = {

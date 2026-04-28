@@ -739,6 +739,57 @@ function sourceRefForEvent(family: ScenarioFamily, event: EventTemplate, isKeyEv
 
   return "ATT&CK mapped";
 }
+const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"] as const;
+const severityLabels = ["Low", "Medium", "High", "Critical"] as const;
+
+function primaryTacticIndex(family: ScenarioFamily) {
+  const indexByFamily: Record<ScenarioFamily, number> = {
+    "Credential Compromise": 0,
+    "Insider Data Drift": 4,
+    "Cloud Account Takeover": 0,
+    "Endpoint Activity": 1,
+    "Exfiltration Signal": 4,
+    "Lateral Movement": 3,
+    "Ransomware Precursor": 1
+  };
+
+  return indexByFamily[family];
+}
+
+function tacticIndexesForEvent(event: EvidenceEvent) {
+  const tags = new Set(event.tags);
+  const indexes = new Set<number>();
+
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin")) indexes.add(2);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas")) indexes.add(4);
+
+  return indexes.size ? Array.from(indexes) : [3];
+}
+
+function buildCaseChartData(family: ScenarioFamily, telemetryEvents: EvidenceEvent[]) {
+  const clueEvents = telemetryEvents.filter((event) => event.is_key_evidence);
+  const mappedTactics = tacticLabels.map(() => 0);
+  const severityHeat = severityLabels.map(() => 0);
+
+  for (const event of clueEvents) {
+    for (const index of tacticIndexesForEvent(event)) {
+      mappedTactics[index] += 1;
+    }
+
+    const severityIndex = severityLabels.indexOf(event.severity);
+    if (severityIndex >= 0) {
+      severityHeat[severityIndex] += 1;
+    }
+  }
+
+  const primaryIndex = primaryTacticIndex(family);
+  mappedTactics[primaryIndex] = Math.max(mappedTactics[primaryIndex], Math.max(...mappedTactics) + 1);
+
+  return { mappedTactics, severityHeat };
+}
 export function generateScenarioCase({
   family = "Credential Compromise",
   difficulty = "Beginner",
@@ -793,6 +844,7 @@ export function generateScenarioCase({
   const keyEvidenceIds = telemetryEvents.filter((event) => event.is_key_evidence).map((event) => event.event_id);
   const decoyIds = telemetryEvents.filter((event) => !event.is_key_evidence).map((event) => event.event_id);
   const falseLead = telemetryEvents.find((event) => !event.is_key_evidence)?.summary ?? "Routine background activity";
+  const chartData = buildCaseChartData(family, telemetryEvents);
 
   return {
     case_id: caseId,
@@ -811,7 +863,8 @@ export function generateScenarioCase({
     decoy_event_ids: decoyIds,
     expected_findings: template.expectedFindings,
     recommended_response: template.recommendedResponse,
-    prevention_lessons: template.preventionLessons
+    prevention_lessons: template.preventionLessons,
+    chartData
   };
 }
 

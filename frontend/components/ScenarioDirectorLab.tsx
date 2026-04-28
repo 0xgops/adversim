@@ -95,6 +95,14 @@ function eventCardTone(event: EvidenceEvent, selected: boolean, debrief: CaseDeb
   return "border-line bg-black/20 opacity-75";
 }
 
+function publishActiveCase(caseFile: ScenarioCase) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem("adversim-active-case", JSON.stringify(caseFile));
+  window.dispatchEvent(new CustomEvent("adversim-active-case", { detail: caseFile }));
+}
 type ScenarioDirectorLabProps = {
   quickStart?: boolean;
 };
@@ -134,6 +142,10 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
       window.clearTimeout(doneTimer);
     };
   }, [quickStart]);
+
+  useEffect(() => {
+    publishActiveCase(caseFile);
+  }, [caseFile]);
 
   const selectedSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
   const keyCount = caseFile.key_evidence_event_ids.length;

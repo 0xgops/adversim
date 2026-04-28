@@ -31,7 +31,8 @@ import {
 } from "recharts";
 import { getLatestSimulation } from "@/lib/api";
 import { simulation as fallbackSimulation } from "@/lib/mock-data";
-import type { SimulationResult } from "@/types/adversim";
+import { generateQuickStartCase } from "@/lib/scenario-director";
+import type { ScenarioCase, SimulationResult } from "@/types/adversim";
 import type { LucideIcon } from "lucide-react";
 
 const severityColors: Record<string, string> = {
@@ -41,6 +42,26 @@ const severityColors: Record<string, string> = {
   Low: "#60a5fa",
   Ready: "#dfff00"
 };
+
+const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"];
+const severityLabels = ["Low", "Medium", "High", "Critical"];
+
+function getInitialActiveCase() {
+  return generateQuickStartCase({ seed: "dashboard-static-preview", caseNumber: 1 });
+}
+
+function parseStoredActiveCase(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as ScenarioCase;
+    return parsed?.chartData?.mappedTactics && parsed?.chartData?.severityHeat ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 function BentoCard({
   children,
@@ -68,12 +89,51 @@ export default function DashboardPage() {
   const [hasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
   const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
+  const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
+  const [chartRevision, setChartRevision] = useState(0);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setChartsReady(true));
     getLatestSimulation().then(setResult);
 
     return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+
+  useEffect(() => {
+    function applyActiveCase(nextCase: ScenarioCase | null) {
+      if (!nextCase?.chartData) {
+        return;
+      }
+
+      setActiveCase(nextCase);
+      setChartRevision((current) => current + 1);
+    }
+
+    function receiveActiveCase(event: Event) {
+      applyActiveCase((event as CustomEvent<ScenarioCase>).detail);
+    }
+
+    function receiveStorageCase(event: StorageEvent) {
+      if (event.key !== "adversim-active-case") {
+        return;
+      }
+
+      applyActiveCase(parseStoredActiveCase(event.newValue));
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      applyActiveCase(parseStoredActiveCase(window.localStorage.getItem("adversim-active-case")));
+    });
+
+    window.addEventListener("adversim-active-case", receiveActiveCase);
+    window.addEventListener("storage", receiveStorageCase);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("adversim-active-case", receiveActiveCase);
+      window.removeEventListener("storage", receiveStorageCase);
+    };
   }, []);
 
   useEffect(() => {
@@ -106,31 +166,18 @@ export default function DashboardPage() {
   }, [result.summary.incident_count, result.summary.confidence, result.telemetry.length, result.timeline.length]);
 
   const severityData = useMemo(() => {
-    if (!hasCompletedRun) {
-      return [{ severity: "Ready", count: 1 }];
-    }
-
-    const counts = result.detections.reduce<Record<string, number>>((acc, detection) => {
-      acc[detection.severity] = (acc[detection.severity] ?? 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(counts).map(([severity, count]) => ({ severity, count }));
-  }, [hasCompletedRun, result.detections]);
-
-  const tacticData = useMemo(() => {
-    if (!hasCompletedRun) {
-      return ["Builder", "Telemetry", "Detections", "Timeline", "Report"].map((tactic) => ({
-        tactic,
-        count: 1
-      }));
-    }
-
-    return result.summary.mapped_tactics.map((tactic) => ({
-      tactic,
-      count: result.detections.filter((detection) => detection.tactic === tactic).length || 1
+    const data = severityLabels.map((severity, index) => ({
+      severity,
+      count: activeCase.chartData.severityHeat[index] ?? 0
     }));
-  }, [hasCompletedRun, result.detections, result.summary.mapped_tactics]);
+
+    return data.some((item) => item.count > 0) ? data.filter((item) => item.count > 0) : [{ severity: "Low", count: 1 }];
+  }, [activeCase]);
+
+  const tacticData = useMemo(() => tacticLabels.map((tactic, index) => ({
+    tactic,
+    count: activeCase.chartData.mappedTactics[index] ?? 0
+  })), [activeCase]);
 
   const navigateFromTactics = () => {
     router.push(hasCompletedRun ? "/timeline" : "/investigation");
@@ -357,10 +404,10 @@ export default function DashboardPage() {
           <div className="mb-5 flex items-center justify-between gap-4">
             <div>
               <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
-                {hasCompletedRun ? "Detection coverage" : "Lab route"}
+                Detection coverage
               </p>
               <h2 className="mt-2 text-xl font-semibold text-ink">
-                {hasCompletedRun ? "Mapped Tactics" : "How The Lab Flows"}
+                Mapped Tactics
               </h2>
             </div>
             <Sparkles aria-hidden className="text-lime" size={19} />
@@ -372,7 +419,7 @@ export default function DashboardPage() {
             aria-label={hasCompletedRun ? "Open attack timeline" : "Start 60-second investigation"}
           >
             {chartsReady ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer key={`tactics-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
                 <BarChart data={tacticData} margin={{ left: 0, right: 10, bottom: 8 }}>
                   <CartesianGrid strokeDasharray="3 8" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="tactic" tick={{ fontSize: 11, fill: "#a1a1aa" }} interval={0} />
@@ -398,16 +445,10 @@ export default function DashboardPage() {
 
         <BentoCard className="min-h-[360px]">
           <div className="mb-5">
-            <p
-              className={`technical text-xs uppercase tracking-[0.24em] ${
-                hasCompletedRun ? "text-crimson" : "text-lime"
-              }`}
-            >
-              {hasCompletedRun ? "Incident heat" : "Readiness"}
+            <p className="technical text-xs uppercase tracking-[0.24em] text-crimson">
+              Incident heat
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-ink">
-              {hasCompletedRun ? "Severity Breakdown" : "Awaiting First Run"}
-            </h2>
+            <h2 className="mt-2 text-xl font-semibold text-ink">Severity Breakdown</h2>
           </div>
           <button
             type="button"
@@ -416,7 +457,7 @@ export default function DashboardPage() {
             aria-label={hasCompletedRun ? "Open detections" : "Start 60-second investigation"}
           >
             {chartsReady ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer key={`severity-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
                 <PieChart margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
                   <Pie
                     data={severityData}
