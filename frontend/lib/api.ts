@@ -9,7 +9,9 @@ import type {
   SimulationResult
 } from "@/types/adversim";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ??
+  (process.env.NODE_ENV === "production" ? "https://adversim.onrender.com" : "http://localhost:8000");
 
 async function fetchJson<T>(path: string, options?: RequestInit, fallback?: T): Promise<T> {
   try {
