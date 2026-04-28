@@ -23,7 +23,7 @@ import {
   Terminal,
   Trophy
 } from "lucide-react";
-import { askAiAnalyst, getAiStatus, getScenarios, runSimulation } from "@/lib/api";
+import { askAiAnalyst, generateAiReport, getAiStatus, getScenarios, runSimulation } from "@/lib/api";
 import { scenarios as fallbackScenarios, simulation as fallbackSimulation } from "@/lib/mock-data";
 import Link from "next/link";
 import type { AIResponse, AIStatus, Scenario, SimulationRequest, SimulationResult, TelemetryEvent } from "@/types/adversim";
@@ -748,6 +748,12 @@ function makeFallbackAiResponse(text: string): AIResponse {
   };
 }
 
+function makeAutoDebriefFallback(result: SimulationResult, scenarioTitle: string): AIResponse {
+  return makeFallbackAiResponse(
+    `Auto AI Debrief: ${scenarioTitle} completed with ${result.summary.incident_count} detection clusters, ${result.summary.confidence}% confidence, and ${result.timeline.length} reconstructed stages. The learning objective is to connect raw synthetic telemetry to detections, then explain the incident clearly enough for an analyst or manager to act.`
+  );
+}
+
 function sourceLabel(source: AIResponse["source"]) {
   if (source === "live-openai") {
     return "OpenAI live";
@@ -786,6 +792,8 @@ export default function BuilderPage() {
   const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
   const [showMissionBanner, setShowMissionBanner] = useState(getInitialMissionBanner);
   const [showCompletionCard, setShowCompletionCard] = useState(false);
+  const [autoDebrief, setAutoDebrief] = useState<AIResponse | null>(null);
+  const [isAutoBriefing, setIsAutoBriefing] = useState(false);
 
   useEffect(() => {
     getScenarios().then(setScenarios);
@@ -819,6 +827,8 @@ export default function BuilderPage() {
     setIsRunning(true);
     setShowMissionBanner(false);
     setShowCompletionCard(false);
+    setAutoDebrief(null);
+    setIsAutoBriefing(false);
     setPulseLogs([]);
     setProgress(0);
     setActiveStageIndex(0);
@@ -890,6 +900,28 @@ export default function BuilderPage() {
     window.localStorage.setItem("adversim-last-run", "complete");
     setShowCompletionCard(true);
     setIsRunning(false);
+
+    setIsAutoBriefing(true);
+    const debrief = await generateAiReport(
+      {
+        session_id: `${sessionId}-auto-debrief`,
+        audience: "judge"
+      },
+      makeAutoDebriefFallback(nextResult, scenarioConfig.title)
+    );
+    setAutoDebrief(debrief);
+    setAiSource(debrief.source);
+    setAiModel(debrief.model);
+    setAiRemainingCalls(debrief.remaining_session_calls);
+    setAiStatusMode(debrief.source === "live-openai" ? "live-ready" : debrief.source === "cached" ? "live-ready" : "fallback-ready");
+    setAiStatusMessage(
+      debrief.source === "live-openai"
+        ? "Auto AI Debrief generated from the completed investigation."
+        : debrief.source === "cached"
+          ? "Auto AI Debrief served from cache."
+          : "Auto AI Debrief used the guarded fallback while live AI stayed safe."
+    );
+    setIsAutoBriefing(false);
   }
 
   async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1019,6 +1051,31 @@ export default function BuilderPage() {
                 <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-5 rounded-[20px] border border-lime/25 bg-lime/[0.06] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-[14px] border border-lime/25 bg-lime/10 text-lime shadow-lime">
+                  {isAutoBriefing ? <RefreshCw aria-hidden size={18} className="animate-spin" /> : <BrainCircuit aria-hidden size={18} />}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-ink">Auto AI Debrief</p>
+                  <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+                    {isAutoBriefing ? "analyzing completed case" : autoDebrief ? sourceLabel(autoDebrief.source) : "queued"}
+                  </p>
+                </div>
+              </div>
+              {autoDebrief ? (
+                <span className="technical rounded-full border border-line bg-black/25 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-zinc-300">
+                  {autoDebrief.model}
+                </span>
+              ) : null}
+            </div>
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-300">
+              {isAutoBriefing
+                ? "AI is reviewing the synthetic detections, timeline, and report context without waiting for a prompt."
+                : autoDebrief?.text ?? "A judge-ready debrief will appear here as soon as the replay finishes."}
+            </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
