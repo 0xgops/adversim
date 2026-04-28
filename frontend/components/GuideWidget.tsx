@@ -10,12 +10,17 @@ const routeTips: Record<string, string[]> = {
   "/": [
     "Lab Brief gives the big picture; this guide explains the controls.",
     "Use the floating Command Dock at the bottom center for navigation.",
-    "Begin in Scenario Director, then follow the evidence through Telemetry, Detections, Timeline, and Reports."
+    "Press Start Investigation for the 60-second path, then use the Command Dock for Telemetry, Detections, Timeline, and Reports."
   ],
   "/director": [
-    "Scenario Director creates a fresh synthetic case with real-feeling clues and decoys.",
-    "Read the briefing first, then select the evidence cards you think belong in the incident.",
+    "Custom Lab Builder is the advanced lane for scenario family, difficulty, randomness, and training mode.",
+    "Generate a custom case when you want more control than Quick Start.",
     "Submit your finding to get a mentor-style debrief, score, missed clues, and prevention guidance."
+  ],
+  "/investigation": [
+    "You are already in the 60-second investigation path.",
+    "Read the Investigation Prompt first, then select the evidence cards that support the case.",
+    "Submit your finding to see what you caught, what you missed, and how to prevent it next time."
   ],
   "/builder": [
     "New to cyber? Choose Insider Data Drift first; it is the easiest story to follow.",
@@ -169,7 +174,7 @@ export function GuideWidget() {
               </ol>
 
               <Link
-                href="/director"
+                href="/investigation"
                 className="focus-ring flex h-11 items-center justify-center gap-2 rounded-[16px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={16} />

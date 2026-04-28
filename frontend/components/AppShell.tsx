@@ -23,7 +23,7 @@ import type { AIStatus } from "@/types/adversim";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/director", label: "Director", icon: BrainCircuit },
+  { href: "/director", label: "Custom Lab", icon: BrainCircuit },
   { href: "/builder", label: "Builder", icon: Radar },
   { href: "/telemetry", label: "Telemetry", icon: Activity },
   { href: "/detections", label: "Detections", icon: ShieldCheck },

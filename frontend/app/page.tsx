@@ -133,16 +133,13 @@ export default function DashboardPage() {
   }, [hasCompletedRun, result.detections, result.summary.mapped_tactics]);
 
   const navigateFromTactics = () => {
-    router.push(hasCompletedRun ? "/timeline" : "/builder");
+    router.push(hasCompletedRun ? "/timeline" : "/investigation");
   };
 
   const navigateFromSeverity = () => {
-    router.push(hasCompletedRun ? "/detections" : "/builder");
+    router.push(hasCompletedRun ? "/detections" : "/investigation");
   };
 
-  const primeGuidedInvestigation = () => {
-    window.localStorage.setItem("adversim-guided-launch", "true");
-  };
 
   const metrics: Array<{
     label: string;
@@ -241,19 +238,18 @@ export default function DashboardPage() {
             </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
-                href="/director"
+                href="/investigation"
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={18} />
                 Start 60-Second Investigation
               </Link>
               <Link
-                href="/builder"
-                onClick={primeGuidedInvestigation}
+                href="/director"
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] border border-line bg-white/5 px-5 text-sm font-semibold text-ink transition hover:bg-white/10"
               >
                 <Radar aria-hidden size={18} />
-                Open Replay Builder
+                Custom Lab Builder
               </Link>
             </div>
           </div>
@@ -373,7 +369,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromTactics}
             className="focus-ring block h-72 w-full cursor-pointer rounded-[18px] text-left"
-            aria-label={hasCompletedRun ? "Open attack timeline" : "Open mock incident builder"}
+            aria-label={hasCompletedRun ? "Open attack timeline" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -396,7 +392,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to open {hasCompletedRun ? "Timeline" : "Builder"}
+            Click chart to open {hasCompletedRun ? "Timeline" : "Investigation"}
           </p>
         </BentoCard>
 
@@ -417,7 +413,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromSeverity}
             className="focus-ring block h-72 w-full cursor-pointer rounded-[18px]"
-            aria-label={hasCompletedRun ? "Open detections" : "Open mock incident builder"}
+            aria-label={hasCompletedRun ? "Open detections" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -448,7 +444,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to open {hasCompletedRun ? "Detections" : "Builder"}
+            Click chart to open {hasCompletedRun ? "Detections" : "Investigation"}
           </p>
         </BentoCard>
       </section>

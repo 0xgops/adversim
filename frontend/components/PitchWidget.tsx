@@ -145,7 +145,7 @@ export function PitchWidget() {
               </div>
 
               <Link
-                href="/director"
+                href="/investigation"
                 className="focus-ring flex h-11 items-center justify-center gap-2 rounded-[16px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={16} />
