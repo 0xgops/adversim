@@ -404,18 +404,20 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 {isQuickStart ? (
-                  <button
-                    type="button"
-                    onClick={rollQuickStartCase}
-                    title="Procedurally generating TTPs..."
-                    className="focus-ring group inline-flex h-9 items-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
-                  >
-                    <RefreshCw aria-hidden size={14} />
-                    <span>Stage New Incident</span>
-                    <span className="technical hidden text-[9px] uppercase tracking-[0.16em] opacity-70 group-hover:inline">
-                      generating TTPs
-                    </span>
-                  </button>
+                  <div className="group/stage relative flex-none">
+                    <button
+                      type="button"
+                      onClick={rollQuickStartCase}
+                      className="focus-ring inline-flex h-9 w-[190px] items-center justify-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
+                      aria-label="Stage new incident"
+                    >
+                      <RefreshCw aria-hidden size={14} />
+                      <span>Stage New Incident</span>
+                    </button>
+                    <div className="pointer-events-none absolute right-0 top-11 z-20 w-max translate-y-1 rounded-[12px] border border-line bg-panel/95 px-3 py-2 opacity-0 shadow-lime backdrop-blur-[20px] transition group-hover/stage:translate-y-0 group-hover/stage:opacity-100 group-focus-within/stage:translate-y-0 group-focus-within/stage:opacity-100">
+                      <p className="technical text-[9px] uppercase tracking-[0.18em] text-lime">Procedurally generating TTPs</p>
+                    </div>
+                  </div>
                 ) : null}
                 <SeverityBadge severity={caseFile.severity} />
                 <span className="technical inline-flex h-7 items-center rounded-md border border-line bg-white/5 px-2 text-xs uppercase tracking-[0.16em] text-zinc-300">
