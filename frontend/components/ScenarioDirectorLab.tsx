@@ -407,10 +407,14 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                   <button
                     type="button"
                     onClick={rollQuickStartCase}
-                    className="focus-ring inline-flex h-9 items-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
+                    title="Procedurally generating TTPs..."
+                    className="focus-ring group inline-flex h-9 items-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
                   >
                     <RefreshCw aria-hidden size={14} />
-                    Roll Another Case
+                    <span>Stage New Incident</span>
+                    <span className="technical hidden text-[9px] uppercase tracking-[0.16em] opacity-70 group-hover:inline">
+                      generating TTPs
+                    </span>
                   </button>
                 ) : null}
                 <SeverityBadge severity={caseFile.severity} />
