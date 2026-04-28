@@ -100,7 +100,9 @@ export type ScenarioFamily =
   | "Insider Data Drift"
   | "Cloud Account Takeover"
   | "Endpoint Activity"
-  | "Exfiltration Signal";
+  | "Exfiltration Signal"
+  | "Lateral Movement"
+  | "Ransomware Precursor";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "SOC" | "Analyst";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
@@ -117,6 +119,7 @@ export type EvidenceEvent = {
   host: string;
   is_key_evidence: boolean;
   tags: string[];
+  source_ref?: string;
 };
 
 export type ScenarioCase = {

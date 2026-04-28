@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BrainCircuit,
@@ -19,6 +19,7 @@ import {
 import { SeverityBadge } from "@/components/SeverityBadge";
 import {
   generateDailyThreatQueue,
+  generateQuickStartCase,
   generateScenarioCase,
   gradeEvidenceSelection,
   scenarioDifficulties,
@@ -94,17 +95,6 @@ function eventCardTone(event: EvidenceEvent, selected: boolean, debrief: CaseDeb
   return "border-line bg-black/20 opacity-75";
 }
 
-function createQuickStartCase() {
-  return generateScenarioCase({
-    family: "Credential Compromise",
-    difficulty: "Beginner",
-    randomness: "Medium",
-    trainingMode: "Guided",
-    seed: `quick-start-${Date.now()}`,
-    caseNumber: 1
-  });
-}
-
 type ScenarioDirectorLabProps = {
   quickStart?: boolean;
 };
@@ -117,9 +107,33 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const [randomness, setRandomness] = useState<ScenarioRandomness>("Medium");
   const [trainingMode, setTrainingMode] = useState<TrainingMode>("Guided");
   const [caseCounter, setCaseCounter] = useState(6);
-  const [caseFile, setCaseFile] = useState<ScenarioCase>(() => (quickStart ? createQuickStartCase() : dailyQueue[2].case));
+  const [quickCaseCounter, setQuickCaseCounter] = useState(1);
+  const [caseFile, setCaseFile] = useState<ScenarioCase>(() => (quickStart ? generateQuickStartCase() : dailyQueue[2].case));
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [debrief, setDebrief] = useState<CaseDebrief | null>(null);
+  const [isBuildingCase, setIsBuildingCase] = useState(quickStart);
+  const [buildProgress, setBuildProgress] = useState(quickStart ? 0 : 1);
+
+  useEffect(() => {
+    if (!quickStart) {
+      return;
+    }
+
+    const progressTimer = window.setInterval(() => {
+      setBuildProgress((current) => Math.min(1, current + 0.08));
+    }, 90);
+
+    const doneTimer = window.setTimeout(() => {
+      window.clearInterval(progressTimer);
+      setBuildProgress(1);
+      setIsBuildingCase(false);
+    }, 1500);
+
+    return () => {
+      window.clearInterval(progressTimer);
+      window.clearTimeout(doneTimer);
+    };
+  }, [quickStart]);
 
   const selectedSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
   const keyCount = caseFile.key_evidence_event_ids.length;
@@ -148,6 +162,26 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     );
   }
 
+  function rollQuickStartCase() {
+    const nextCounter = quickCaseCounter + 1;
+    setQuickCaseCounter(nextCounter);
+    setSelectedEventIds([]);
+    setDebrief(null);
+    setBuildProgress(0);
+    setIsBuildingCase(true);
+    setCaseFile(generateQuickStartCase({ caseNumber: nextCounter }));
+
+    const progressTimer = window.setInterval(() => {
+      setBuildProgress((current) => Math.min(1, current + 0.08));
+    }, 90);
+
+    window.setTimeout(() => {
+      window.clearInterval(progressTimer);
+      setBuildProgress(1);
+      setIsBuildingCase(false);
+    }, 1500);
+  }
+
   function toggleEvent(eventId: string) {
     if (debrief) {
       return;
@@ -160,6 +194,51 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
 
   function submitFinding() {
     setDebrief(gradeEvidenceSelection(caseFile, selectedEventIds));
+  }
+
+  if (isQuickStart && isBuildingCase) {
+    const progressPercent = Math.round(buildProgress * 100);
+
+    return (
+      <div className="grid min-h-[58vh] place-items-center">
+        <motion.section
+          initial={{ opacity: 0, y: 14, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="guide-glass w-full max-w-3xl overflow-hidden rounded-[32px] p-6 sm:p-8"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="technical text-xs uppercase tracking-[0.28em] text-lime">Scenario Director</p>
+              <h1 className="mt-3 text-3xl font-semibold text-ink sm:text-5xl">Analyzing Synthetic Telemetry...</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
+                Rolling scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline.
+              </p>
+            </div>
+            <div className="technical rounded-full border border-lime/25 bg-lime/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-lime shadow-lime">
+              {progressPercent}%
+            </div>
+          </div>
+
+          <div className="mt-7 h-3 overflow-hidden rounded-full border border-line bg-black/40">
+            <motion.div
+              className="h-full rounded-full bg-lime shadow-lime"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.12, ease: "easeOut" }}
+            />
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-4">
+            {["Scenario", "Clues", "Decoys", "Timeline"].map((step) => (
+              <div key={step} className="rounded-[18px] border border-line bg-black/25 p-4">
+                <p className="technical text-[10px] uppercase tracking-[0.18em] text-zinc-500">building</p>
+                <p className="mt-2 text-sm font-semibold text-ink">{step}</p>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+      </div>
+    );
   }
 
   return (
@@ -323,7 +402,17 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                   </span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
+                {isQuickStart ? (
+                  <button
+                    type="button"
+                    onClick={rollQuickStartCase}
+                    className="focus-ring inline-flex h-9 items-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
+                  >
+                    <RefreshCw aria-hidden size={14} />
+                    Roll Another Case
+                  </button>
+                ) : null}
                 <SeverityBadge severity={caseFile.severity} />
                 <span className="technical inline-flex h-7 items-center rounded-md border border-line bg-white/5 px-2 text-xs uppercase tracking-[0.16em] text-zinc-300">
                   {caseFile.difficulty}
@@ -394,6 +483,11 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                       {trainingMode === "Guided" || debrief ? event.plain_english : "Blind investigation: submit your finding to reveal the plain-English mentor hint."}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2">
+                      {event.source_ref ? (
+                        <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-lime">
+                          Source: {event.source_ref}
+                        </span>
+                      ) : null}
                       {event.tags.map((tag) => (
                         <span key={tag} className="technical rounded-full border border-line bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
                           {tag}

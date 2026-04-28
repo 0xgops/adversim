@@ -14,6 +14,7 @@ type EventTemplate = {
   plain_english: string;
   severity: EvidenceEvent["severity"];
   tags: string[];
+  source_ref?: string;
 };
 
 type ScenarioTemplate = {
@@ -33,7 +34,9 @@ export const scenarioFamilies: ScenarioFamily[] = [
   "Insider Data Drift",
   "Cloud Account Takeover",
   "Endpoint Activity",
-  "Exfiltration Signal"
+  "Exfiltration Signal",
+  "Lateral Movement",
+  "Ransomware Precursor"
 ];
 
 export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "SOC", "Analyst"];
@@ -46,10 +49,63 @@ const users = [
   "morgan.ellis",
   "hr.manager",
   "project.contractor",
-  "samir.patel"
+  "samir.patel",
+  "jordan.reed",
+  "maya.okafor",
+  "ops.service",
+  "casey.nguyen"
 ];
 
-const hosts = ["NYC-WKS-014", "NYC-WKS-015", "NYC-FIN-021", "SEA-LAP-008", "ATL-HR-044", "DAL-VDI-102"];
+const hosts = [
+  "NYC-WKS-014",
+  "NYC-WKS-015",
+  "NYC-FIN-021",
+  "SEA-LAP-008",
+  "ATL-HR-044",
+  "DAL-VDI-102",
+  "CHI-WKS-033",
+  "AUS-ENG-118",
+  "BOS-SRV-007",
+  "PHX-LAP-062"
+];
+
+const commonDecoyEvents: EventTemplate[] = [
+  {
+    source: "Calendar",
+    summary: "Routine calendar sync completed from a trusted mobile client",
+    plain_english: "This is normal collaboration traffic and does not support the case narrative.",
+    severity: "Low",
+    tags: ["decoy", "collaboration"]
+  },
+  {
+    source: "Patch",
+    summary: "Approved software update window completed successfully",
+    plain_english: "This is expected maintenance activity and belongs outside the incident story.",
+    severity: "Low",
+    tags: ["decoy", "patch"]
+  },
+  {
+    source: "Printer",
+    summary: "Printer authentication event recorded from a nearby subnet",
+    plain_english: "This is ordinary office noise, not meaningful attacker behavior.",
+    severity: "Low",
+    tags: ["decoy", "office-noise"]
+  },
+  {
+    source: "VPN",
+    summary: "Known VPN device completed a healthy session refresh",
+    plain_english: "This access looks normal because the device and session pattern are familiar.",
+    severity: "Low",
+    tags: ["decoy", "vpn"]
+  },
+  {
+    source: "Inventory",
+    summary: "Asset inventory collector refreshed endpoint metadata",
+    plain_english: "This system-management event is useful background context, but not suspicious evidence.",
+    severity: "Low",
+    tags: ["decoy", "inventory"]
+  }
+];
 
 const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Credential Compromise": {
@@ -400,6 +456,168 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["decoy", "internal"]
       }
     ]
+  },
+  "Lateral Movement": {
+    family: "Lateral Movement",
+    titles: ["Lateral Movement Drill", "Internal Pivot Investigation", "East-West Access Review"],
+    briefings: [
+      "Identity and endpoint signals suggest a user context may have moved between internal systems. Identify which clues prove the movement path and which are ordinary admin noise.",
+      "Several internal access events landed close together across workstations and servers. Build the defensive story without assuming every remote-looking event is malicious."
+    ],
+    attackerProfiles: ["Internal movement emulator", "East-west telemetry training case", "Synthetic pivot-path actor"],
+    expectedFindings: [
+      "New internal authentication path from the first workstation",
+      "Administrative access pattern on a second host",
+      "Endpoint telemetry aligns with the internal movement window"
+    ],
+    recommendedResponse: [
+      "Review source and destination host authentication logs",
+      "Validate whether the administrative access was scheduled",
+      "Check privileged group membership and recent session activity",
+      "Preserve endpoint and identity telemetry for both hosts"
+    ],
+    preventionLessons: ["Segment sensitive systems", "Alert on unusual east-west access", "Review privileged session patterns"],
+    keyEvents: [
+      {
+        source: "Auth",
+        summary: "New internal logon path observed from the target workstation",
+        plain_english: "The account accessed a system it does not normally touch from this workstation.",
+        severity: "Medium",
+        tags: ["identity", "east-west"]
+      },
+      {
+        source: "Endpoint",
+        summary: "Remote administration telemetry appeared on a second host",
+        plain_english: "A second machine entered the story, which is a key clue for movement between systems.",
+        severity: "High",
+        tags: ["endpoint", "remote-admin"]
+      },
+      {
+        source: "Directory",
+        summary: "Privileged resource access check occurred after the internal logon",
+        plain_english: "The account looked at access to a sensitive internal resource after moving hosts.",
+        severity: "High",
+        tags: ["identity", "privilege-review"]
+      },
+      {
+        source: "Network",
+        summary: "East-west session volume exceeded the workstation baseline",
+        plain_english: "The host talked to internal systems more than usual during the alert window.",
+        severity: "Medium",
+        tags: ["network", "lateral-movement"]
+      },
+      {
+        source: "EDR",
+        summary: "Process lineage on the destination host matched the access window",
+        plain_english: "Endpoint timing on the second host lines up with the suspicious internal access.",
+        severity: "High",
+        tags: ["edr", "correlation"]
+      }
+    ],
+    decoyEvents: [
+      {
+        source: "Helpdesk",
+        summary: "Approved remote support session closed for a different workstation",
+        plain_english: "This looks similar, but it belongs to another host and does not fit the case timeline.",
+        severity: "Low",
+        tags: ["decoy", "support"]
+      },
+      {
+        source: "Directory",
+        summary: "Group policy refresh completed across the subnet",
+        plain_english: "This is broad normal domain activity, not a user-driven movement clue.",
+        severity: "Low",
+        tags: ["decoy", "policy"]
+      },
+      {
+        source: "Network",
+        summary: "Internal monitoring probe checked service health",
+        plain_english: "The source is a known monitor, so this should not be selected as user evidence.",
+        severity: "Low",
+        tags: ["decoy", "monitoring"]
+      }
+    ]
+  },
+  "Ransomware Precursor": {
+    family: "Ransomware Precursor",
+    titles: ["Ransomware Precursor Review", "Pre-Encryption Signal Drill", "Backup Risk Investigation"],
+    briefings: [
+      "Several defensive signals resemble early-stage ransomware preparation, but no real malware or encryption is present. Identify the warning signs defenders should escalate.",
+      "Endpoint and file telemetry show a risky pre-impact pattern. Separate the meaningful warning signs from routine maintenance events."
+    ],
+    attackerProfiles: ["Impact-prevention training case", "Synthetic ransomware precursor emulator", "Pre-impact defensive drill"],
+    expectedFindings: [
+      "Backup or recovery-related access anomaly",
+      "Rapid file-touch pattern before impact",
+      "Endpoint behavior that increases urgency before damage occurs"
+    ],
+    recommendedResponse: [
+      "Validate backup access and recent administrative changes",
+      "Review file-change telemetry around the alert window",
+      "Isolate the affected host if policy thresholds are met",
+      "Confirm recovery controls and preserve endpoint logs"
+    ],
+    preventionLessons: ["Protect backups with separate access controls", "Alert on rapid file-change bursts", "Correlate endpoint and file telemetry before impact"],
+    keyEvents: [
+      {
+        source: "Backup",
+        summary: "Backup catalog access anomaly observed before file-change burst",
+        plain_english: "Activity touched recovery-related telemetry before the file pattern changed, which raises urgency.",
+        severity: "High",
+        tags: ["backup", "pre-impact"]
+      },
+      {
+        source: "Fileshare",
+        summary: "Rapid file metadata changes exceeded the department baseline",
+        plain_english: "The host changed many file records faster than normal, a warning sign defenders should review.",
+        severity: "High",
+        tags: ["fileshare", "file-change"]
+      },
+      {
+        source: "EDR",
+        summary: "Unsigned archive utility staging metadata observed in lab telemetry",
+        plain_english: "This is inert synthetic data, but it teaches analysts to question unusual staging behavior.",
+        severity: "Medium",
+        tags: ["edr", "staging"]
+      },
+      {
+        source: "Endpoint",
+        summary: "High-volume rename-like pattern appeared in a controlled test folder",
+        plain_english: "A burst of file-name changes can be an early warning sign even before impact occurs.",
+        severity: "Critical",
+        tags: ["endpoint", "impact-prevention"]
+      },
+      {
+        source: "Identity",
+        summary: "Temporary administrative access was granted shortly before the file burst",
+        plain_english: "New admin context before risky file behavior makes the case more serious.",
+        severity: "High",
+        tags: ["identity", "privilege"]
+      }
+    ],
+    decoyEvents: [
+      {
+        source: "Backup",
+        summary: "Scheduled backup verification completed successfully",
+        plain_english: "This is expected recovery-control maintenance and not part of the warning sequence.",
+        severity: "Low",
+        tags: ["decoy", "backup"]
+      },
+      {
+        source: "Storage",
+        summary: "User restored one deleted document from self-service recovery",
+        plain_english: "This is normal user recovery behavior and does not match a broad risky pattern.",
+        severity: "Low",
+        tags: ["decoy", "restore"]
+      },
+      {
+        source: "Endpoint",
+        summary: "Approved endpoint protection scan completed",
+        plain_english: "Security tooling activity can be noisy, but this scan is approved and expected.",
+        severity: "Low",
+        tags: ["decoy", "security-tooling"]
+      }
+    ]
   }
 };
 
@@ -447,6 +665,28 @@ function formatClock(minutesAfterStart: number) {
   return `${hour12.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")} ${suffix}`;
 }
 
+function formatRealtimeClock(date: Date) {
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
+function realtimeTimestamps(count: number, random: () => number) {
+  let cursor = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    if (index > 0) {
+      const minutesBack = 2 + Math.floor(random() * 9);
+      const secondsBack = Math.floor(random() * 50);
+      cursor = new Date(cursor.getTime() - (minutesBack * 60 + secondsBack) * 1000);
+    }
+
+    return formatRealtimeClock(cursor);
+  });
+}
+
 function severityForDifficulty(difficulty: ScenarioDifficulty, random: () => number): ScenarioCase["severity"] {
   if (difficulty === "Beginner") {
     return pick(["Medium", "High"], random);
@@ -474,13 +714,40 @@ function confidenceForSeverity(severity: ScenarioCase["severity"], random: () =>
   return min + Math.floor(random() * (max - min + 1));
 }
 
+function sourceRefForEvent(family: ScenarioFamily, event: EventTemplate, isKeyEvidence: boolean) {
+  if (event.source_ref) {
+    return event.source_ref;
+  }
+
+  if (!isKeyEvidence) {
+    return "AdverSim noise";
+  }
+
+  const tags = new Set(event.tags);
+
+  if (tags.has("credential-access")) return "MITRE T1110";
+  if (tags.has("initial-access")) return "MITRE T1078";
+  if (tags.has("execution") || tags.has("script")) return "MITRE T1059";
+  if (tags.has("discovery")) return "MITRE T1083";
+  if (tags.has("exfiltration") || tags.has("egress")) return "MITRE T1041";
+  if (tags.has("sharing") || tags.has("collection")) return "MITRE T1530";
+  if (tags.has("cloud") || tags.has("post-login")) return "MITRE T1078";
+  if (tags.has("remote-admin") || tags.has("east-west") || tags.has("lateral-movement")) return "MITRE T1021";
+  if (family === "Ransomware Precursor" && tags.has("backup")) return "MITRE T1490";
+  if (family === "Ransomware Precursor") return "MITRE T1486";
+  if (tags.has("privilege") || tags.has("privilege-review")) return "MITRE T1068";
+
+  return "ATT&CK mapped";
+}
 export function generateScenarioCase({
   family = "Credential Compromise",
   difficulty = "Beginner",
   randomness = "Medium",
   trainingMode = "Guided",
   seed = Date.now().toString(),
-  caseNumber = 1
+  caseNumber = 1,
+  procedural = false,
+  realtime = false
 }: {
   family?: ScenarioFamily;
   difficulty?: ScenarioDifficulty;
@@ -488,6 +755,8 @@ export function generateScenarioCase({
   trainingMode?: TrainingMode;
   seed?: string;
   caseNumber?: number;
+  procedural?: boolean;
+  realtime?: boolean;
 } = {}): ScenarioCase {
   const random = makeRandom(`${seed}:${family}:${difficulty}:${randomness}:${trainingMode}:${caseNumber}`);
   const template = templates[family];
@@ -495,17 +764,21 @@ export function generateScenarioCase({
   const targetHost = pick(hosts, random);
   const severity = severityForDifficulty(difficulty, random);
   const confidence = confidenceForSeverity(severity, random);
-  const decoyCount = randomness === "Low" ? 2 : randomness === "Medium" ? 3 : 5;
-  const keyEvents = template.keyEvents.map((event, index) => ({ event, key: true, index }));
-  const decoyEvents = shuffle(template.decoyEvents, random).slice(0, decoyCount).map((event, index) => ({ event, key: false, index }));
-  const rawEvents = trainingMode === "Blind Investigation" || randomness === "Chaos Lab"
+  const decoyCount = procedural ? 3 : randomness === "Low" ? 2 : randomness === "Medium" ? 3 : 5;
+  const keyCount = procedural ? Math.min(template.keyEvents.length, 3 + Math.floor(random() * 2)) : template.keyEvents.length;
+  const selectedKeyEvents = procedural ? shuffle(template.keyEvents, random).slice(0, keyCount) : template.keyEvents;
+  const decoyPool = procedural ? [...template.decoyEvents, ...commonDecoyEvents] : template.decoyEvents;
+  const keyEvents = selectedKeyEvents.map((event, index) => ({ event, key: true, index }));
+  const decoyEvents = shuffle(decoyPool, random).slice(0, decoyCount).map((event, index) => ({ event, key: false, index }));
+  const rawEvents = procedural || trainingMode === "Blind Investigation" || randomness === "Chaos Lab"
     ? shuffle([...keyEvents, ...decoyEvents], random)
     : [...keyEvents, ...decoyEvents];
+  const timestamps = realtime ? realtimeTimestamps(rawEvents.length, random) : null;
   const caseId = `ADV-2026-${caseNumber.toString().padStart(3, "0")}`;
 
   const telemetryEvents = rawEvents.map(({ event, key }, index): EvidenceEvent => ({
     event_id: `evt-${(index + 1).toString().padStart(3, "0")}`,
-    timestamp: formatClock(30 + index * (randomness === "Chaos Lab" ? 17 : 12)),
+    timestamp: timestamps?.[index] ?? formatClock(30 + index * (randomness === "Chaos Lab" ? 17 : 12)),
     source: event.source,
     summary: `${event.summary} for ${targetUser}`,
     plain_english: event.plain_english,
@@ -513,7 +786,8 @@ export function generateScenarioCase({
     user: targetUser,
     host: key ? targetHost : pick(hosts, random),
     is_key_evidence: key,
-    tags: event.tags
+    tags: event.tags,
+    source_ref: sourceRefForEvent(family, event, key)
   }));
 
   const keyEvidenceIds = telemetryEvents.filter((event) => event.is_key_evidence).map((event) => event.event_id);
@@ -541,16 +815,49 @@ export function generateScenarioCase({
   };
 }
 
+const quickStartFamilies: ScenarioFamily[] = [
+  "Credential Compromise",
+  "Insider Data Drift",
+  "Cloud Account Takeover",
+  "Endpoint Activity",
+  "Exfiltration Signal",
+  "Lateral Movement",
+  "Ransomware Precursor"
+];
+
+export function generateQuickStartCase({
+  seed = `quick:${Date.now()}:${Math.random()}`,
+  caseNumber = 1
+}: {
+  seed?: string;
+  caseNumber?: number;
+} = {}) {
+  const random = makeRandom(seed);
+  const family = pick(quickStartFamilies, random);
+
+  return generateScenarioCase({
+    family,
+    difficulty: "Beginner",
+    randomness: "Medium",
+    trainingMode: "Guided",
+    seed,
+    caseNumber,
+    procedural: true,
+    realtime: true
+  });
+}
 export function generateDailyThreatQueue(seed = new Date().toDateString()) {
   const families: ScenarioFamily[] = [
     "Cloud Account Takeover",
     "Insider Data Drift",
     "Credential Compromise",
     "Exfiltration Signal",
-    "Endpoint Activity"
+    "Endpoint Activity",
+    "Lateral Movement",
+    "Ransomware Precursor"
   ];
-  const difficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "SOC", "Analyst", "Intermediate"];
-  const randomness: ScenarioRandomness[] = ["Low", "Medium", "Medium", "Chaos Lab", "Low"];
+  const difficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "SOC", "Analyst", "Intermediate", "SOC", "Intermediate"];
+  const randomness: ScenarioRandomness[] = ["Low", "Medium", "Medium", "Chaos Lab", "Low", "Medium", "Medium"];
 
   return families.map((family, index) => ({
     time: formatClock(30 + index * 105),
