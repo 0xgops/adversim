@@ -877,14 +877,14 @@ export default function BuilderPage() {
 
     setChatMessages((current) => [
       {
-        id: pendingId,
-        role: "analyst",
-        text: "[Live AI Analyst]: Reading the current synthetic evidence..."
-      },
-      {
         id: `user-${now}`,
         role: "user",
         text: `[YOU]: ${trimmedInput}`
+      },
+      {
+        id: pendingId,
+        role: "analyst",
+        text: "[Live AI Analyst]: Reading the current synthetic evidence..."
       },
       ...current
     ]);
@@ -911,7 +911,7 @@ export default function BuilderPage() {
         ? "Live OpenAI analyst responded successfully."
         : response.source === "cached"
           ? "Cached AI response served instantly."
-          : "Guarded fallback responded. Check backend OPENAI_API_KEY if live AI was expected."
+          : "Guarded fallback responded. Live AI is configured, but this request fell back safely."
     );
     setChatMessages((current) =>
       current.map((message) =>

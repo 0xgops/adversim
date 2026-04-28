@@ -142,7 +142,8 @@ Synthetic lab context:
 
         try:
             text = self._call_openai(user_prompt, max_output_tokens or self.max_output_tokens)
-        except Exception:
+        except Exception as error:
+            print(f"AdverSim AI fallback after OpenAI error: {error!r}")
             return _response(fallback, "fallback", self.model, remaining)
 
         self.budget.spend(session_id)
@@ -158,7 +159,9 @@ Synthetic lab context:
             model=self.model,
             instructions=SYSTEM_PROMPT,
             input=user_prompt,
-            max_output_tokens=max_output_tokens,
+            reasoning={"effort": "minimal"},
+            text={"verbosity": "low"},
+            max_output_tokens=max(1200, max_output_tokens),
         )
         text = getattr(response, "output_text", "") or ""
         if not text.strip():
