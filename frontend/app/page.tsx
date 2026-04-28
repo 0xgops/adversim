@@ -2,7 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, AlertTriangle, Compass, FileText, Gauge, Radar, Route, ShieldAlert, Sparkles } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle2,
+  Compass,
+  Gauge,
+  GraduationCap,
+  Play,
+  Radar,
+  Route,
+  ShieldAlert,
+  Sparkles
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -55,6 +67,7 @@ export default function DashboardPage() {
   const [metricProgress, setMetricProgress] = useState(0);
   const [hasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
+  const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setChartsReady(true));
@@ -127,6 +140,10 @@ export default function DashboardPage() {
     router.push(hasCompletedRun ? "/detections" : "/builder");
   };
 
+  const primeGuidedInvestigation = () => {
+    window.localStorage.setItem("adversim-guided-launch", "true");
+  };
+
   const metrics: Array<{
     label: string;
     value: string | number;
@@ -178,34 +195,74 @@ export default function DashboardPage() {
       >
         <div className="relative z-10 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
           <div>
-            <p className="technical text-xs uppercase tracking-[0.32em] text-lime">AI mock-incident lab for defenders</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
+                Cybersecurity
+              </span>
+              <span className="technical text-xs uppercase tracking-[0.32em] text-lime">
+                AdverSim // synthetic defense lab
+              </span>
+            </div>
             <h1 className="mt-5 max-w-4xl text-5xl font-semibold tracking-normal text-ink sm:text-6xl lg:text-7xl">
               AdverSim
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-400">
-              Ask AI to create a safe mock security incident, then practice identifying clues, reading logs, reconstructing the timeline, and writing the response.
+              Learn cyber defense by investigating safe synthetic incidents. AI creates the case, you follow the clues, then AdverSim turns the evidence into detections, a timeline, and a report.
             </p>
+            <div className="mt-5 inline-flex rounded-full border border-line bg-black/25 p-1">
+              {[
+                ["beginner", "Beginner View"],
+                ["soc", "SOC View"]
+              ].map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setAudienceMode(mode as "beginner" | "soc")}
+                  className={`focus-ring rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    audienceMode === mode ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-5 max-w-2xl rounded-[22px] border border-lime/20 bg-lime/[0.06] p-4">
+              <div className="flex items-center gap-2 text-lime">
+                <GraduationCap aria-hidden size={17} />
+                <p className="technical text-xs uppercase tracking-[0.22em]">
+                  {audienceMode === "beginner" ? "No cyber background needed" : "Blue-team workflow"}
+                </p>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">
+                {audienceMode === "beginner"
+                  ? "Think of it like a detective case: logs are clues, detections are the suspicious patterns, the timeline is the story, and the report is your final answer."
+                  : "Run a controlled adversary simulation, inspect synthetic telemetry, validate correlated detections, reconstruct sequence, and produce an analyst-ready incident brief."}
+              </p>
+            </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/builder"
+                onClick={primeGuidedInvestigation}
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
-                <Radar aria-hidden size={18} />
-                Build Mock Incident
+                <Play aria-hidden size={18} />
+                Start 60-Second Investigation
               </Link>
               <Link
-                href="/reports"
+                href="/builder"
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] border border-line bg-white/5 px-5 text-sm font-semibold text-ink transition hover:bg-white/10"
               >
-                <FileText aria-hidden size={18} />
-                View Report
+                <Radar aria-hidden size={18} />
+                Open Builder
               </Link>
             </div>
           </div>
 
           <div className="rounded-[24px] border border-line bg-black/30 p-5">
             <div className="flex items-center justify-between">
-              <p className="technical text-xs uppercase tracking-[0.25em] text-zinc-500">Current run</p>
+              <p className="technical text-xs uppercase tracking-[0.25em] text-zinc-500">
+                {hasCompletedRun ? "Investigation complete" : "Mission"}
+              </p>
               <span
                 className={`technical rounded-full border px-3 py-1 text-xs ${
                   hasCompletedRun
@@ -217,13 +274,40 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="mt-4 text-3xl font-semibold text-ink">
-              {hasCompletedRun ? result.summary.status : "Ready to Build"}
+              {hasCompletedRun ? "Case Closed" : "You Are The Analyst"}
             </p>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
               {hasCompletedRun
-                ? `${result.summary.incident_count} correlated detections across ${result.summary.mapped_tactics.length} mapped tactics.`
-                : "Start a mock incident in the Builder to heat up the dashboard."}
+                ? `${result.summary.incident_count} detections reviewed, ${result.timeline.length} stages reconstructed, and ${result.summary.confidence}% confidence earned.`
+                : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
             </p>
+            <div className="mt-5 space-y-3">
+              {(hasCompletedRun
+                ? ["Detections reviewed", "Timeline reconstructed", "Report ready"]
+                : ["Start the replay", "Watch logs appear", "Ask AI what it means"]
+              ).map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-[16px] border border-line bg-white/[0.035] px-3 py-3">
+                  <CheckCircle2 aria-hidden size={16} className="text-lime" />
+                  <span className="text-sm text-zinc-300">{item}</span>
+                </div>
+              ))}
+            </div>
+            {hasCompletedRun ? (
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <Link
+                  href="/timeline"
+                  className="focus-ring flex h-10 items-center justify-center rounded-[14px] border border-line bg-white/5 text-xs font-semibold text-ink transition hover:border-lime/40"
+                >
+                  Timeline
+                </Link>
+                <Link
+                  href="/reports"
+                  className="focus-ring flex h-10 items-center justify-center rounded-[14px] bg-lime text-xs font-bold text-obsidian shadow-lime transition hover:brightness-110"
+                >
+                  Report
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </motion.section>
@@ -379,7 +463,9 @@ export default function DashboardPage() {
             <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
               {hasCompletedRun ? "Live simulation flow" : "Lab navigation flow"}
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-ink">Builder → Telemetry → Detections → Timeline → Report</h2>
+            <h2 className="mt-2 text-xl font-semibold text-ink">
+              {"Builder -> Telemetry -> Detections -> Timeline -> Report"}
+            </h2>
           </div>
           {hasCompletedRun ? (
             <AlertTriangle aria-hidden className="text-crimson" size={20} />

@@ -8,10 +8,10 @@ import { useState } from "react";
 import type { LucideIcon } from "lucide-react";
 
 const trainingTracks = [
-  ["Your role", "You are the defender, reading clues from safe synthetic security data"],
-  ["18 lab runs", "Two scenario families combine with nine intensity/noise training profiles"],
-  ["Beginner path", "Start with Insider Data Drift on Clean/Low for the most readable story"],
-  ["AI coach", "Ask the analyst to explain any signal in plain language as the replay unfolds"]
+  ["The promise", "Can AI teach you to investigate a fake cyber incident in 60 seconds?"],
+  ["Your role", "You are the analyst. Logs are clues, detections are patterns, the report is your answer."],
+  ["Beginner path", "Start the guided investigation, then follow the Command Dock from left to right."],
+  ["AI coach", "Ask the analyst what any clue means in plain English as the replay unfolds."]
 ];
 
 export function PitchWidget() {
@@ -95,12 +95,17 @@ export function PitchWidget() {
           >
             <div className="space-y-4 bg-black/10 p-4">
               <div>
-                <p className="technical text-xs uppercase tracking-[0.24em] text-lime">AI mock-incident lab</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="technical rounded-full border border-lime/30 bg-lime/10 px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-lime">
+                    Cybersecurity
+                  </span>
+                  <p className="technical text-xs uppercase tracking-[0.24em] text-lime">AI mock-incident lab</p>
+                </div>
                 <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">
-                  Follow the clues. Think like a defender.
+                  You are the analyst.
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-zinc-300">
-                  Ask AI to create a safe mock incident so you can practice spotting clues, understanding logs, and deciding what a defender should do next.
+                  Ask AI to stage a safe mock cyber incident, then follow the clues until you can explain what happened and what to do next.
                 </p>
                 <p className="mt-3 text-xs leading-5 text-zinc-500">
                   The floating Command Dock at the bottom center is your lab console: Builder, Telemetry, Detections, Timeline, and Reports.

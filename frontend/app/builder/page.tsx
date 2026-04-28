@@ -12,6 +12,7 @@ import {
   FileArchive,
   FileSearch,
   Fingerprint,
+  GraduationCap,
   Gauge,
   LockKeyhole,
   Play,
@@ -19,10 +20,12 @@ import {
   Send,
   ShieldCheck,
   Signal,
-  Terminal
+  Terminal,
+  Trophy
 } from "lucide-react";
 import { askAiAnalyst, getAiStatus, getScenarios, runSimulation } from "@/lib/api";
 import { scenarios as fallbackScenarios, simulation as fallbackSimulation } from "@/lib/mock-data";
+import Link from "next/link";
 import type { AIResponse, AIStatus, Scenario, SimulationRequest, SimulationResult, TelemetryEvent } from "@/types/adversim";
 import type { LucideIcon } from "lucide-react";
 
@@ -31,7 +34,7 @@ const noiseOptions = ["Clean", "Realistic", "Noisy"] as const;
 const durationOptions = ["15 minutes", "30 minutes", "1 hour"] as const;
 
 const replaySecondsByDuration: Record<SimulationRequest["duration"], number> = {
-  "15 minutes": 75,
+  "15 minutes": 60,
   "30 minutes": 105,
   "1 hour": 150
 };
@@ -93,6 +96,24 @@ const defaultRequest: SimulationRequest = {
   duration: "30 minutes",
   noise_level: "Realistic"
 };
+
+function getInitialBuilderRequest(): SimulationRequest {
+  if (typeof window === "undefined") {
+    return defaultRequest;
+  }
+
+  return window.localStorage.getItem("adversim-guided-launch") === "true"
+    ? { ...defaultRequest, duration: "15 minutes" }
+    : defaultRequest;
+}
+
+function getInitialMissionBanner() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.localStorage.getItem("adversim-guided-launch") === "true";
+}
 
 const variantProfiles: Record<string, VariantProfile> = {
   "Clean-Low": {
@@ -741,7 +762,7 @@ function sourceLabel(source: AIResponse["source"]) {
 
 export default function BuilderPage() {
   const [scenarios, setScenarios] = useState<Scenario[]>(fallbackScenarios);
-  const [request, setRequest] = useState<SimulationRequest>(defaultRequest);
+  const [request, setRequest] = useState<SimulationRequest>(getInitialBuilderRequest);
   const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
   const [pulseLogs, setPulseLogs] = useState<TelemetryEvent[]>(fallbackSimulation.telemetry.slice(-4));
   const [isRunning, setIsRunning] = useState(false);
@@ -762,6 +783,9 @@ export default function BuilderPage() {
   const [aiRemainingCalls, setAiRemainingCalls] = useState(0);
   const [aiStatusMessage, setAiStatusMessage] = useState("Checking AI readiness...");
   const [aiStatusMode, setAiStatusMode] = useState<AIStatus["mode"]>("fallback-ready");
+  const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
+  const [showMissionBanner, setShowMissionBanner] = useState(getInitialMissionBanner);
+  const [showCompletionCard, setShowCompletionCard] = useState(false);
 
   useEffect(() => {
     getScenarios().then(setScenarios);
@@ -772,6 +796,8 @@ export default function BuilderPage() {
       setAiModel(status.mode === "fallback-ready" && !status.has_api_key ? "guarded-fallback" : status.model);
       setAiRemainingCalls(status.remaining_demo_calls);
     });
+
+    window.localStorage.removeItem("adversim-guided-launch");
   }, [sessionId]);
 
   const intensityValue = intensityOptions.indexOf(request.intensity);
@@ -791,6 +817,8 @@ export default function BuilderPage() {
 
   async function handleRun() {
     setIsRunning(true);
+    setShowMissionBanner(false);
+    setShowCompletionCard(false);
     setPulseLogs([]);
     setProgress(0);
     setActiveStageIndex(0);
@@ -860,6 +888,7 @@ export default function BuilderPage() {
       timeline: nextResult.timeline.length
     });
     window.localStorage.setItem("adversim-last-run", "complete");
+    setShowCompletionCard(true);
     setIsRunning(false);
   }
 
@@ -928,6 +957,86 @@ export default function BuilderPage() {
 
   return (
     <div className="space-y-6">
+      {showMissionBanner ? (
+        <motion.section
+          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="guide-glass rounded-[28px] p-5"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-3xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-lime">
+                  Cybersecurity
+                </span>
+                <span className="technical text-xs uppercase tracking-[0.24em] text-zinc-500">guided investigation</span>
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold text-ink">You are the analyst. Start here.</h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">
+                Run the mock simulation, watch synthetic logs appear, ask AI what the clues mean, then use the Command Dock to open Detections, Timeline, and Reports.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRun}
+              disabled={isRunning}
+              className="focus-ring flex h-12 items-center gap-2 rounded-[16px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:bg-zinc-700"
+            >
+              <Play aria-hidden size={17} />
+              Start Replay
+            </button>
+          </div>
+        </motion.section>
+      ) : null}
+
+      {showCompletionCard ? (
+        <motion.section
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="guide-glass rounded-[28px] p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-lime">
+                <Trophy aria-hidden size={19} />
+                <p className="technical text-xs uppercase tracking-[0.24em]">Investigation complete</p>
+              </div>
+              <h2 className="mt-3 text-2xl font-semibold text-ink">Case reconstructed. Report ready.</h2>
+            </div>
+            <span className="technical rounded-full border border-crimson/30 bg-crimson/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-crimson">
+              {result.summary.severity} severity
+            </span>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-4">
+            {[
+              ["Detections", result.summary.incident_count],
+              ["Confidence", `${result.summary.confidence}%`],
+              ["Telemetry", result.telemetry.length],
+              ["Timeline", result.timeline.length]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-[18px] border border-line bg-black/25 p-4">
+                <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+                <p className="mt-2 text-2xl font-semibold text-ink">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/timeline"
+              className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] border border-line bg-white/5 px-4 text-sm font-semibold text-ink transition hover:border-lime/40"
+            >
+              Open Timeline
+            </Link>
+            <Link
+              href="/reports"
+              className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+            >
+              Generate Report
+            </Link>
+          </div>
+        </motion.section>
+      ) : null}
+
       <motion.section
         layoutId="builder-hero"
         className="grid gap-5 lg:grid-cols-[1fr_360px]"
@@ -936,13 +1045,47 @@ export default function BuilderPage() {
         <GlassCard className="relative overflow-hidden p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-3xl">
-              <p className="technical text-xs uppercase tracking-[0.32em] text-lime">Mock Incident Builder</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
+                  Cybersecurity
+                </span>
+                <p className="technical text-xs uppercase tracking-[0.32em] text-lime">Mock Incident Builder</p>
+              </div>
               <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-normal text-ink sm:text-5xl lg:text-6xl">
                 {scenarioConfig.title}
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
                 {scenarioConfig.subtitle}
               </p>
+              <div className="mt-4 inline-flex rounded-full border border-line bg-black/25 p-1">
+                {[
+                  ["beginner", "Beginner"],
+                  ["soc", "SOC"]
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setAudienceMode(mode as "beginner" | "soc")}
+                    className={`focus-ring rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      audienceMode === mode ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex max-w-2xl gap-3 rounded-[18px] border border-line bg-black/25 p-3">
+                {audienceMode === "beginner" ? (
+                  <GraduationCap aria-hidden size={18} className="mt-0.5 shrink-0 text-lime" />
+                ) : (
+                  <ShieldCheck aria-hidden size={18} className="mt-0.5 shrink-0 text-lime" />
+                )}
+                <p className="text-sm leading-6 text-zinc-300">
+                  {audienceMode === "beginner"
+                    ? "Plain-English mode: each box is a clue, the lime border shows the clue happening now, and the AI Analyst explains what the clue means."
+                    : "SOC mode: tune the scenario, review phase telemetry, validate detections, reconstruct sequence, and generate the incident handoff."}
+                </p>
+              </div>
             </div>
             <div className="technical rounded-full border border-line bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-zinc-300">
               {readyScenarioCount} live scenarios
