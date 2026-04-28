@@ -31,6 +31,16 @@ latest_result: SimulationResult = generate_simulation(SimulationRequest())
 ai_analyst = AIAnalystService()
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": "adversim-api",
+        "health": "/health",
+        "docs": "/docs",
+    }
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "adversim-api"}
