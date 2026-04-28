@@ -59,6 +59,7 @@ class AIAnalystService:
         self.timeout_seconds = _env_int("ADVERSIM_AI_TIMEOUT_SECONDS", 20)
         self.budget = AIBudget()
         self.cache: dict[str, str] = {}
+        self.last_error: str | None = None
 
     def explain(self, request: AIAnalystRequest, latest_result: SimulationResult) -> AIResponse:
         context = _compact_context(latest_result, request)
@@ -99,6 +100,7 @@ Synthetic lab context:
                 model=self.model,
                 remaining_demo_calls=remaining,
                 message="Guarded fallback is ready. Set OPENAI_API_KEY in the backend shell to enable live AI.",
+                last_error=self.last_error,
             )
 
         if remaining <= 0:
@@ -109,6 +111,7 @@ Synthetic lab context:
                 model=self.model,
                 remaining_demo_calls=0,
                 message="Live AI is configured, but the demo call limit has been reached. Cached/fallback responses remain available.",
+                last_error=self.last_error,
             )
 
         return AIStatus(
@@ -118,6 +121,7 @@ Synthetic lab context:
             model=self.model,
             remaining_demo_calls=remaining,
             message="Live OpenAI analyst is armed. First answer will use API credits unless a cached answer exists.",
+            last_error=self.last_error,
         )
 
     def _complete(
@@ -143,9 +147,11 @@ Synthetic lab context:
         try:
             text = self._call_openai(user_prompt, max_output_tokens or self.max_output_tokens)
         except Exception as error:
-            print(f"AdverSim AI fallback after OpenAI error: {error!r}")
-            return _response(fallback, "fallback", self.model, remaining)
+            self.last_error = _sanitize_error(error)
+            print(f"AdverSim AI fallback after OpenAI error: {self.last_error}")
+            return _response(fallback, "fallback", self.model, remaining, diagnostic=self.last_error)
 
+        self.last_error = None
         self.budget.spend(session_id)
         remaining_after_spend = self.budget.remaining_for_session(session_id)
         self.cache[cache_key] = text
@@ -188,14 +194,20 @@ def _hash_key(intent: str, model: str, prompt: str) -> str:
     return f"{intent}:{model}:{digest}"
 
 
-def _response(text: str, source: AI_SOURCE, model: str, remaining: int) -> AIResponse:
+def _response(text: str, source: AI_SOURCE, model: str, remaining: int, diagnostic: str | None = None) -> AIResponse:
     return AIResponse(
         text=text,
         source=source,
         model=model,
         remaining_session_calls=remaining,
         safety_note=SAFETY_NOTE,
+        diagnostic=diagnostic,
     )
+
+
+def _sanitize_error(error: Exception) -> str:
+    message = str(error).replace(os.getenv("OPENAI_API_KEY", ""), "[redacted]")
+    return f"{error.__class__.__name__}: {message[:450]}"
 
 
 def _compact_context(latest_result: SimulationResult, request: AIAnalystRequest | None) -> str:

@@ -93,6 +93,7 @@ class AIResponse(BaseModel):
     model: str
     remaining_session_calls: int
     safety_note: str
+    diagnostic: str | None = None
 
 
 class AIStatus(BaseModel):
@@ -102,3 +103,4 @@ class AIStatus(BaseModel):
     model: str
     remaining_demo_calls: int
     message: str
+    last_error: str | None = None

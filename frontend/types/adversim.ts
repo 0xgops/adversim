@@ -83,6 +83,7 @@ export type AIResponse = {
   model: string;
   remaining_session_calls: number;
   safety_note: string;
+  diagnostic?: string | null;
 };
 
 export type AIStatus = {
@@ -92,4 +93,5 @@ export type AIStatus = {
   model: string;
   remaining_demo_calls: number;
   message: string;
+  last_error?: string | null;
 };
