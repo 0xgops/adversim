@@ -95,3 +95,57 @@ export type AIStatus = {
   message: string;
   last_error?: string | null;
 };
+export type ScenarioFamily =
+  | "Credential Compromise"
+  | "Insider Data Drift"
+  | "Cloud Account Takeover"
+  | "Endpoint Activity"
+  | "Exfiltration Signal";
+
+export type ScenarioDifficulty = "Beginner" | "Intermediate" | "SOC" | "Analyst";
+export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
+export type TrainingMode = "Guided" | "Blind Investigation";
+
+export type EvidenceEvent = {
+  event_id: string;
+  timestamp: string;
+  source: string;
+  summary: string;
+  plain_english: string;
+  severity: "Low" | "Medium" | "High" | "Critical";
+  user: string;
+  host: string;
+  is_key_evidence: boolean;
+  tags: string[];
+};
+
+export type ScenarioCase = {
+  case_id: string;
+  title: string;
+  scenario_family: ScenarioFamily;
+  difficulty: ScenarioDifficulty;
+  severity: "Low" | "Medium" | "High" | "Critical";
+  target_user: string;
+  target_host: string;
+  attacker_profile: string;
+  false_lead: string;
+  confidence: number;
+  case_briefing: string;
+  telemetry_events: EvidenceEvent[];
+  key_evidence_event_ids: string[];
+  decoy_event_ids: string[];
+  expected_findings: string[];
+  recommended_response: string[];
+  prevention_lessons: string[];
+};
+
+export type CaseDebrief = {
+  correctly_identified: EvidenceEvent[];
+  missed_clues: EvidenceEvent[];
+  false_positives: EvidenceEvent[];
+  severity_explanation: string;
+  prevention_guidance: string[];
+  analyst_score: number;
+  outcome_label: string;
+};
+

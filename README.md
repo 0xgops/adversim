@@ -4,11 +4,11 @@ AdverSim is an AI-assisted mock-incident lab for blue-team training. A learner a
 
 It demonstrates a safe defensive workflow:
 
-1. Choose a safe mock incident in the Builder.
-2. Generate safe synthetic security telemetry.
-3. Run detection logic over the synthetic events.
-4. Reconstruct an incident timeline.
-5. Generate an analyst-ready incident report in Markdown.
+1. Generate a randomized safe training case in Scenario Director.
+2. Investigate an evidence board with key clues and decoy events.
+3. Submit an analyst finding and receive an AI-style mentor debrief.
+4. Generate safe synthetic security telemetry in the replay Builder.
+5. Reconstruct an incident timeline and produce an analyst-ready report.
 
 AdverSim does not implement real exploitation, malware, credential theft, evasion, or live targeting. All behavior is represented as synthetic logs for defensive education.
 
@@ -16,11 +16,11 @@ AdverSim does not implement real exploitation, malware, credential theft, evasio
 
 ```text
 adversim/
-├── frontend/     # Next.js, TypeScript, Tailwind UI
-├── backend/      # Python FastAPI placeholder API
-├── docs/         # Architecture and demo notes
-├── demo_assets/  # JSON-first demo data
-└── README.md
++-- frontend/     # Next.js, TypeScript, Tailwind UI
++-- backend/      # Python FastAPI API
++-- docs/         # Architecture and demo notes
++-- demo_assets/  # JSON-first demo data
++-- README.md
 ```
 
 ## Quick Start
@@ -103,7 +103,7 @@ NEXT_PUBLIC_API_URL=https://your-backend-domain.onrender.com
 
 ## Demo Flow
 
-The initial vertical slice includes two polished ready scenarios:
+The lab now has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The initial vertical slice includes two polished ready scenario families:
 
 **Credential Compromise Chain**
 
@@ -136,6 +136,7 @@ That creates 18 guided lab runs across the two scenario families. Duration contr
 Main navigation:
 
 - Dashboard
+- Scenario Director
 - Adversary Builder
 - Telemetry
 - Detections
@@ -149,3 +150,6 @@ Main navigation:
 - Expand detection rules
 - Add report export to PDF
 - Add additional scenario templates
+- Connect Scenario Director debriefs to live AI when demo budget allows
+
+

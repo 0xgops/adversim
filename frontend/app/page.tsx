@@ -241,8 +241,7 @@ export default function DashboardPage() {
             </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
-                href="/builder"
-                onClick={primeGuidedInvestigation}
+                href="/director"
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={18} />
@@ -250,10 +249,11 @@ export default function DashboardPage() {
               </Link>
               <Link
                 href="/builder"
+                onClick={primeGuidedInvestigation}
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] border border-line bg-white/5 px-5 text-sm font-semibold text-ink transition hover:bg-white/10"
               >
                 <Radar aria-hidden size={18} />
-                Open Builder
+                Open Replay Builder
               </Link>
             </div>
           </div>
@@ -485,3 +485,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+

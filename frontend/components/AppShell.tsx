@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import {
   Activity,
+  BrainCircuit,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -22,7 +23,8 @@ import type { AIStatus } from "@/types/adversim";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/builder", label: "Adversary Builder", icon: Radar },
+  { href: "/director", label: "Director", icon: BrainCircuit },
+  { href: "/builder", label: "Builder", icon: Radar },
   { href: "/telemetry", label: "Telemetry", icon: Activity },
   { href: "/detections", label: "Detections", icon: ShieldCheck },
   { href: "/timeline", label: "Timeline", icon: Route },
@@ -124,7 +126,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </p>
         </footer>
 
-        <nav className="fixed bottom-5 left-1/2 z-40 w-[min(calc(100%-24px),760px)] -translate-x-1/2">
+        <nav className="fixed bottom-5 left-1/2 z-40 w-[min(calc(100%-24px),900px)] -translate-x-1/2">
           <div className="glass-panel flex items-center justify-between gap-1 rounded-[28px] p-2">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -158,3 +160,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     </LayoutGroup>
   );
 }
+
+
+
+
+

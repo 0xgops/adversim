@@ -10,7 +10,12 @@ const routeTips: Record<string, string[]> = {
   "/": [
     "Lab Brief gives the big picture; this guide explains the controls.",
     "Use the floating Command Dock at the bottom center for navigation.",
-    "Begin in the Builder, then follow the evidence through Telemetry, Detections, Timeline, and Reports."
+    "Begin in Scenario Director, then follow the evidence through Telemetry, Detections, Timeline, and Reports."
+  ],
+  "/director": [
+    "Scenario Director creates a fresh synthetic case with real-feeling clues and decoys.",
+    "Read the briefing first, then select the evidence cards you think belong in the incident.",
+    "Submit your finding to get a mentor-style debrief, score, missed clues, and prevention guidance."
   ],
   "/builder": [
     "New to cyber? Choose Insider Data Drift first; it is the easiest story to follow.",
@@ -164,11 +169,11 @@ export function GuideWidget() {
               </ol>
 
               <Link
-                href="/builder"
+                href="/director"
                 className="focus-ring flex h-11 items-center justify-center gap-2 rounded-[16px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={16} />
-                Start Simulation
+                Start Investigation
               </Link>
 
               <p className="technical text-center text-[9px] uppercase tracking-[0.18em] text-zinc-600">
@@ -181,3 +186,6 @@ export function GuideWidget() {
     </motion.aside>
   );
 }
+
+
+
