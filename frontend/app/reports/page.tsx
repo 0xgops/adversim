@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bot, Clipboard, FileText, RefreshCw } from "lucide-react";
-import { generateAiReport, getLatestSimulation } from "@/lib/api";
-import { simulation as fallbackSimulation } from "@/lib/mock-data";
-import type { AIResponse, SimulationResult } from "@/types/adversim";
+import { generateAiReport } from "@/lib/api";
+import { readActiveCase, subscribeToActiveCase } from "@/lib/active-case";
+import type { AIResponse, ScenarioCase } from "@/types/adversim";
+
+const IDLE_REPORT_MARKDOWN = "# Incident Report\n*Awaiting Case Completion*";
 
 function getSessionId() {
   if (typeof window === "undefined") {
@@ -33,22 +35,65 @@ function fallbackAiReport(markdown: string): AIResponse {
   };
 }
 
+function buildCaseReport(caseFile: ScenarioCase) {
+  return `# Incident Report
+
+## Case Summary
+Case ID: ${caseFile.case_id}
+Title: ${caseFile.title}
+Scenario Family: ${caseFile.scenario_family}
+Severity: ${caseFile.severity}
+Confidence: ${caseFile.confidence}%
+
+## Investigation Prompt
+${caseFile.case_briefing}
+
+## Affected Entity
+- Target user: ${caseFile.target_user}
+- Target host: ${caseFile.target_host}
+- Actor profile: ${caseFile.attacker_profile}
+
+## Key Evidence
+${caseFile.telemetry_events
+  .filter((event) => event.is_key_evidence)
+  .map((event) => `- ${event.timestamp} | ${event.source} | ${event.summary}`)
+  .join("\n")}
+
+## Expected Findings
+${caseFile.expected_findings.map((finding) => `- ${finding}`).join("\n")}
+
+## Recommended Response
+${caseFile.recommended_response.map((action) => `- ${action}`).join("\n")}
+
+## Prevention Lessons
+${caseFile.prevention_lessons.map((lesson) => `- ${lesson}`).join("\n")}
+`;
+}
+
 export default function ReportsPage() {
-  const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
-  const [reportMarkdown, setReportMarkdown] = useState(fallbackSimulation.report_markdown);
+  const [activeCase, setActiveCase] = useState<ScenarioCase | null>(readActiveCase);
+  const [generatedReportMarkdown, setGeneratedReportMarkdown] = useState<string | null>(null);
   const [sessionId] = useState(getSessionId);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiSource, setAiSource] = useState<AIResponse["source"]>("fallback");
-  const [aiModel, setAiModel] = useState("guarded-fallback");
+  const [aiModel, setAiModel] = useState("idle");
   const [aiRemainingCalls, setAiRemainingCalls] = useState(0);
 
   useEffect(() => {
-    getLatestSimulation().then((latest) => {
-      setResult(latest);
-      setReportMarkdown(latest.report_markdown);
+    return subscribeToActiveCase((nextCase) => {
+      setActiveCase(nextCase);
+      setGeneratedReportMarkdown(null);
+      setAiSource("fallback");
+      setAiModel(nextCase ? "case-report-local" : "idle");
+      setAiRemainingCalls(0);
     });
   }, []);
+
+  const reportMarkdown = useMemo(
+    () => generatedReportMarkdown ?? (activeCase ? buildCaseReport(activeCase) : IDLE_REPORT_MARKDOWN),
+    [activeCase, generatedReportMarkdown]
+  );
 
   async function copyReport() {
     await navigator.clipboard.writeText(reportMarkdown);
@@ -57,16 +102,20 @@ export default function ReportsPage() {
   }
 
   async function generateLiveReport() {
+    if (!activeCase) {
+      return;
+    }
+
     setIsGenerating(true);
     const response = await generateAiReport(
       {
         session_id: sessionId,
         audience: "judge"
       },
-      fallbackAiReport(result.report_markdown)
+      fallbackAiReport(reportMarkdown)
     );
 
-    setReportMarkdown(response.text);
+    setGeneratedReportMarkdown(response.text);
     setAiSource(response.source);
     setAiModel(response.model);
     setAiRemainingCalls(response.remaining_session_calls);
@@ -83,7 +132,9 @@ export default function ReportsPage() {
               Analyst-Ready Incident Report
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-              Markdown first, tuned for a concise incident handoff and executive summary.
+              {activeCase
+                ? "Markdown first, tuned for a concise incident handoff and executive summary."
+                : "The report surface is cleared until an investigation is staged and completed."}
             </p>
           </div>
           <button
@@ -97,7 +148,7 @@ export default function ReportsPage() {
           <button
             type="button"
             onClick={generateLiveReport}
-            disabled={isGenerating}
+            disabled={isGenerating || !activeCase}
             className="focus-ring inline-flex h-11 items-center gap-2 rounded-[16px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
           >
             {isGenerating ? <RefreshCw aria-hidden size={16} className="animate-spin" /> : <Bot aria-hidden size={16} />}
@@ -114,7 +165,7 @@ export default function ReportsPage() {
           <div>
             <h2 className="text-lg font-semibold text-ink">incident-report.md</h2>
             <p className="technical text-xs uppercase tracking-[0.2em] text-zinc-500">
-              {aiSource === "live-openai" ? "OpenAI live" : aiSource === "cached" ? "cached AI" : "local fallback"} · {aiModel} · {aiRemainingCalls} calls left
+              {aiSource === "live-openai" ? "OpenAI live" : aiSource === "cached" ? "cached AI" : "local fallback"} | {aiModel} | {aiRemainingCalls} calls left
             </p>
           </div>
         </div>

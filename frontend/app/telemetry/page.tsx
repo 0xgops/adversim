@@ -1,30 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, Database, RadioTower } from "lucide-react";
-import { getLatestSimulation } from "@/lib/api";
-import { simulation as fallbackSimulation } from "@/lib/mock-data";
-import type { SimulationResult } from "@/types/adversim";
+import { readActiveCase, subscribeToActiveCase } from "@/lib/active-case";
+import type { ScenarioCase } from "@/types/adversim";
 
 function severityClass(severity: string) {
-  if (severity === "critical") {
+  const normalized = severity.toLowerCase();
+
+  if (normalized === "critical") {
     return "border-crimson/30 bg-crimson/10 text-crimson";
   }
 
-  if (severity === "high") {
+  if (normalized === "high") {
     return "border-orange-400/30 bg-orange-400/10 text-orange-300";
   }
 
-  return "border-lime/30 bg-lime/10 text-lime";
+  if (normalized === "medium") {
+    return "border-lime/30 bg-lime/10 text-lime";
+  }
+
+  return "border-cobalt/30 bg-cobalt/10 text-cobalt";
 }
 
 export default function TelemetryPage() {
-  const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
+  const [activeCase, setActiveCase] = useState<ScenarioCase | null>(readActiveCase);
 
   useEffect(() => {
-    getLatestSimulation().then(setResult);
+    return subscribeToActiveCase(setActiveCase);
   }, []);
+
+  const telemetry = useMemo(() => activeCase?.telemetry_events ?? [], [activeCase]);
+  const sourceMix = useMemo(() => Array.from(new Set(telemetry.map((event) => event.source))), [telemetry]);
 
   return (
     <div className="space-y-5">
@@ -38,12 +46,14 @@ export default function TelemetryPage() {
             <p className="technical text-xs uppercase tracking-[0.32em] text-lime">Pulse Telemetry</p>
             <h1 className="mt-4 text-4xl font-semibold text-ink sm:text-5xl">Synthetic Log Stream</h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-              Realistic defensive signals generated from the Credential Compromise Chain.
+              {activeCase
+                ? `Defensive signals generated from ${activeCase.scenario_family}.`
+                : "Stage an incident to open the synthetic telemetry connection."}
             </p>
           </div>
           <div className="technical flex items-center gap-2 rounded-full border border-line bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-zinc-300">
-            <RadioTower aria-hidden size={15} className="text-lime" />
-            {result.telemetry.length} events
+            <RadioTower aria-hidden size={15} className={activeCase ? "text-lime" : "text-zinc-500"} />
+            {telemetry.length} events
           </div>
         </div>
       </motion.section>
@@ -62,30 +72,40 @@ export default function TelemetryPage() {
             </div>
           </div>
 
-          <motion.ul layout className="max-h-[620px] divide-y divide-line overflow-hidden">
-            {result.telemetry.map((event, index) => (
-              <motion.li
-                key={event.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.24, delay: index * 0.035 }}
-                className="grid gap-3 px-5 py-4 lg:grid-cols-[120px_140px_1fr_110px]"
-              >
-                <span className="technical text-xs text-lime">
-                  {new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-                <span className="technical text-xs uppercase tracking-[0.18em] text-zinc-500">{event.source}</span>
-                <p className="technical text-sm leading-6 text-zinc-200">{event.message}</p>
-                <span
-                  className={`technical inline-flex h-7 w-fit items-center rounded-full border px-2.5 text-[10px] uppercase tracking-[0.18em] ${severityClass(
-                    event.severity
-                  )}`}
+          {telemetry.length ? (
+            <motion.ul layout className="max-h-[620px] divide-y divide-line overflow-hidden">
+              {telemetry.map((event, index) => (
+                <motion.li
+                  key={event.event_id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, delay: index * 0.035 }}
+                  className="grid gap-3 px-5 py-4 lg:grid-cols-[120px_140px_1fr_110px]"
                 >
-                  {event.severity}
-                </span>
-              </motion.li>
-            ))}
-          </motion.ul>
+                  <span className="technical text-xs text-lime">{event.timestamp}</span>
+                  <span className="technical text-xs uppercase tracking-[0.18em] text-zinc-500">{event.source}</span>
+                  <p className="technical text-sm leading-6 text-zinc-200">{event.summary}</p>
+                  <span
+                    className={`technical inline-flex h-7 w-fit items-center rounded-full border px-2.5 text-[10px] uppercase tracking-[0.18em] ${severityClass(
+                      event.severity
+                    )}`}
+                  >
+                    {event.severity}
+                  </span>
+                </motion.li>
+              ))}
+            </motion.ul>
+          ) : (
+            <div className="grid min-h-[420px] place-items-center bg-black/20 p-6">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+                <div className="mx-auto h-2 w-44 rounded-full bg-[#2a2a2a]" />
+                <p className="technical mt-6 text-sm uppercase tracking-[0.28em] text-zinc-500">[ CONNECTION IDLE ]</p>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-500">
+                  The telemetry stream is cleared and waiting for a staged case.
+                </p>
+              </motion.div>
+            </div>
+          )}
         </div>
 
         <aside className="glass-panel rounded-[24px] p-5">
@@ -94,16 +114,22 @@ export default function TelemetryPage() {
           </div>
           <h2 className="mt-5 text-xl font-semibold text-ink">Source Mix</h2>
           <div className="mt-5 space-y-3">
-            {Array.from(new Set(result.telemetry.map((event) => event.source))).map((source) => (
-              <div key={source} className="rounded-[18px] border border-line bg-black/25 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="technical text-xs uppercase tracking-[0.22em] text-zinc-300">{source}</span>
-                  <span className="technical text-xs text-lime">
-                    {result.telemetry.filter((event) => event.source === source).length}
-                  </span>
+            {sourceMix.length ? (
+              sourceMix.map((source) => (
+                <div key={source} className="rounded-[18px] border border-line bg-black/25 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="technical text-xs uppercase tracking-[0.22em] text-zinc-300">{source}</span>
+                    <span className="technical text-xs text-lime">
+                      {telemetry.filter((event) => event.source === source).length}
+                    </span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="rounded-[18px] border border-line bg-black/25 p-4">
+                <span className="technical text-xs uppercase tracking-[0.22em] text-zinc-500">No source feed</span>
               </div>
-            ))}
+            )}
           </div>
         </aside>
       </section>

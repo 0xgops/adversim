@@ -4,25 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
-import { generateQuickStartCase } from "@/lib/scenario-director";
+import { readActiveCase, subscribeToActiveCase } from "@/lib/active-case";
 import type { Detection, EvidenceEvent, ScenarioCase } from "@/types/adversim";
-
-function getInitialActiveCase() {
-  return generateQuickStartCase({ seed: "detections-static-preview", caseNumber: 1 });
-}
-
-function parseStoredActiveCase(value: string | null) {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(value) as ScenarioCase;
-    return parsed?.telemetry_events?.length ? parsed : null;
-  } catch {
-    return null;
-  }
-}
 
 function tacticForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
@@ -80,44 +63,13 @@ function buildDetections(caseFile: ScenarioCase): Detection[] {
 }
 
 export default function DetectionsPage() {
-  const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
+  const [activeCase, setActiveCase] = useState<ScenarioCase | null>(readActiveCase);
 
   useEffect(() => {
-    function applyActiveCase(nextCase: ScenarioCase | null) {
-      if (!nextCase) {
-        return;
-      }
-
-      setActiveCase(nextCase);
-    }
-
-    function receiveActiveCase(event: Event) {
-      applyActiveCase((event as CustomEvent<ScenarioCase>).detail);
-    }
-
-    function receiveStorageCase(event: StorageEvent) {
-      if (event.key !== "adversim-active-case") {
-        return;
-      }
-
-      applyActiveCase(parseStoredActiveCase(event.newValue));
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      applyActiveCase(parseStoredActiveCase(window.localStorage.getItem("adversim-active-case")));
-    });
-
-    window.addEventListener("adversim-active-case", receiveActiveCase);
-    window.addEventListener("storage", receiveStorageCase);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("adversim-active-case", receiveActiveCase);
-      window.removeEventListener("storage", receiveStorageCase);
-    };
+    return subscribeToActiveCase(setActiveCase);
   }, []);
 
-  const detections = useMemo(() => buildDetections(activeCase), [activeCase]);
+  const detections = useMemo(() => (activeCase ? buildDetections(activeCase) : []), [activeCase]);
 
   return (
     <div className="space-y-5">
@@ -127,12 +79,15 @@ export default function DetectionsPage() {
           Suspicious Activity Findings
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-          Active case analytics correlate the staged {activeCase.scenario_family.toLowerCase()} telemetry into analyst-friendly findings and response guidance.
+          {activeCase
+            ? `Active case analytics correlate the staged ${activeCase.scenario_family.toLowerCase()} telemetry into analyst-friendly findings and response guidance.`
+            : "Stage an incident to activate the detection engine and populate analyst-friendly findings."}
         </p>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2">
-        {detections.map((detection, index) => (
+      {detections.length ? (
+        <section className="grid gap-5 lg:grid-cols-2">
+          {detections.map((detection, index) => (
           <motion.article
             key={detection.id}
             initial={{ opacity: 0, y: 14 }}
@@ -172,8 +127,25 @@ export default function DetectionsPage() {
               <p className="mt-3 text-sm leading-6 text-zinc-300">{detection.recommendation}</p>
             </div>
           </motion.article>
-        ))}
-      </section>
+          ))}
+        </section>
+      ) : (
+        <section className="glass-panel grid min-h-[360px] place-items-center rounded-[24px] p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[18px] border border-line bg-white/[0.03] text-zinc-500">
+              <ShieldCheck aria-hidden size={22} />
+            </div>
+            <p className="technical mt-5 text-sm uppercase tracking-[0.28em] text-zinc-500">[ NO ACTIVE ANALYTICS ]</p>
+            <p className="mt-3 max-w-md text-sm leading-6 text-zinc-500">
+              Detection cards stay cleared until a new investigation is staged.
+            </p>
+          </motion.div>
+        </section>
+      )}
     </div>
   );
 }

@@ -32,6 +32,7 @@ import {
   YAxis
 } from "recharts";
 import { getLatestSimulation } from "@/lib/api";
+import { clearActiveCaseState } from "@/lib/active-case";
 import { clearCaseHistory, readCaseHistory } from "@/lib/case-history";
 import { simulation as fallbackSimulation } from "@/lib/mock-data";
 import type { ScenarioCase, SimulationResult } from "@/types/adversim";
@@ -249,8 +250,7 @@ export default function DashboardPage() {
   }, [activeCase]);
 
   function resetEnvironment() {
-    window.localStorage.removeItem("adversim-active-case");
-    window.localStorage.removeItem("adversim-last-run");
+    clearActiveCaseState();
     clearCaseHistory();
     setActiveCase(null);
     setHasActiveInvestigation(false);
@@ -259,7 +259,6 @@ export default function DashboardPage() {
     setMetricProgress(0);
     setChartRevision((current) => current + 1);
     setToastMessage("Lab Environment Purged.");
-    window.dispatchEvent(new CustomEvent("adversim-active-case-cleared"));
     window.setTimeout(() => setToastMessage(null), 2200);
   }
 

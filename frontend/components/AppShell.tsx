@@ -21,6 +21,7 @@ import type { ReactNode } from "react";
 import { GuideWidget } from "@/components/GuideWidget";
 import { PitchWidget } from "@/components/PitchWidget";
 import { getAiStatus } from "@/lib/api";
+import { clearActiveCaseState, readActiveCase } from "@/lib/active-case";
 import type { AIStatus } from "@/types/adversim";
 
 const navItems = [
@@ -38,12 +39,7 @@ function hasStoredActiveInvestigation() {
     return false;
   }
 
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem("adversim-active-case") ?? "null") as { telemetry_events?: unknown[] } | null;
-    return Boolean(parsed?.telemetry_events?.length);
-  } catch {
-    return false;
-  }
+  return Boolean(readActiveCase());
 }
 function AIStatusPill() {
   const [status, setStatus] = useState<AIStatus>({
@@ -93,9 +89,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
 
   function closeActiveInvestigation() {
-    window.localStorage.removeItem("adversim-active-case");
+    clearActiveCaseState();
     setHasActiveInvestigation(false);
-    window.dispatchEvent(new CustomEvent("adversim-active-case-cleared"));
   }
 
   useEffect(() => {
