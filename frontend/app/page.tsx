@@ -83,6 +83,14 @@ function getInitialRunState() {
   return window.localStorage.getItem("adversim-last-run") === "complete";
 }
 
+function getInitialActiveInvestigationState() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return Boolean(parseStoredActiveCase(window.localStorage.getItem("adversim-active-case")));
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
@@ -94,6 +102,7 @@ export default function DashboardPage() {
   const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
   const [chartRevision, setChartRevision] = useState(0);
   const [caseHistoryCount, setCaseHistoryCount] = useState(() => readCaseHistory().length);
+  const [hasActiveInvestigation, setHasActiveInvestigation] = useState(getInitialActiveInvestigationState);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setChartsReady(true));
@@ -110,6 +119,7 @@ export default function DashboardPage() {
       }
 
       setActiveCase(nextCase);
+      setHasActiveInvestigation(true);
       setChartRevision((current) => current + 1);
     }
 
@@ -122,11 +132,15 @@ export default function DashboardPage() {
         return;
       }
 
-      applyActiveCase(parseStoredActiveCase(event.newValue));
+      const storedCase = parseStoredActiveCase(event.newValue);
+      setHasActiveInvestigation(Boolean(storedCase));
+      applyActiveCase(storedCase);
     }
 
     const frame = window.requestAnimationFrame(() => {
-      applyActiveCase(parseStoredActiveCase(window.localStorage.getItem("adversim-active-case")));
+      const storedCase = parseStoredActiveCase(window.localStorage.getItem("adversim-active-case"));
+      setHasActiveInvestigation(Boolean(storedCase));
+      applyActiveCase(storedCase);
     });
 
     window.addEventListener("adversim-active-case", receiveActiveCase);
@@ -313,7 +327,7 @@ export default function DashboardPage() {
                 className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <Play aria-hidden size={18} />
-                Start 60-Second Investigation
+                {hasActiveInvestigation ? "Resume Investigation" : "Start 60-Second Investigation"}
               </Link>
               <Link
                 href="/director"
@@ -357,12 +371,16 @@ export default function DashboardPage() {
             <p className="mt-3 text-sm leading-6 text-zinc-400">
               {hasCompletedRun
                 ? `${result.summary.incident_count} detections reviewed, ${result.timeline.length} stages reconstructed, and ${result.summary.confidence}% confidence earned.`
-                : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
+                : hasActiveInvestigation
+                  ? "You have an active case staged. Check the charts, then jump back into the evidence board without losing the scenario."
+                  : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
             </p>
             <div className="mt-5 space-y-3">
               {(hasCompletedRun
                 ? ["Detections reviewed", "Timeline reconstructed", "Report ready"]
-                : ["Start the replay", "Watch logs appear", "Ask AI what it means"]
+                : hasActiveInvestigation
+                  ? ["Review dashboard heat", "Resume the evidence board", "Submit your finding"]
+                  : ["Start the replay", "Watch logs appear", "Ask AI what it means"]
               ).map((item) => (
                 <div key={item} className="flex items-center gap-3 rounded-[16px] border border-line bg-white/[0.035] px-3 py-3">
                   <CheckCircle2 aria-hidden size={16} className="text-lime" />
@@ -451,7 +469,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromTactics}
             className="focus-ring block h-72 w-full cursor-pointer rounded-[18px] text-left"
-            aria-label={hasCompletedRun ? "Open attack timeline" : "Start 60-second investigation"}
+            aria-label={hasCompletedRun ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`tactics-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
@@ -474,7 +492,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to open {hasCompletedRun ? "Timeline" : "Investigation"}
+            Click chart to {hasCompletedRun ? "open Timeline" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
 
@@ -489,7 +507,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromSeverity}
             className="focus-ring block h-72 w-full cursor-pointer rounded-[18px]"
-            aria-label={hasCompletedRun ? "Open detections" : "Start 60-second investigation"}
+            aria-label={hasCompletedRun ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`severity-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
@@ -520,7 +538,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to open {hasCompletedRun ? "Detections" : "Investigation"}
+            Click chart to {hasCompletedRun ? "open Detections" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
       </section>

@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
+  Play,
   Radar,
   Route,
   ShieldCheck
@@ -31,6 +32,18 @@ const navItems = [
   { href: "/reports", label: "Reports", icon: FileText }
 ];
 
+function hasStoredActiveInvestigation() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem("adversim-active-case") ?? "null") as { telemetry_events?: unknown[] } | null;
+    return Boolean(parsed?.telemetry_events?.length);
+  } catch {
+    return false;
+  }
+}
 function AIStatusPill() {
   const [status, setStatus] = useState<AIStatus>({
     mode: "fallback-ready",
@@ -76,6 +89,29 @@ function AIStatusPill() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
+
+  useEffect(() => {
+    function syncActiveInvestigation() {
+      setHasActiveInvestigation(hasStoredActiveInvestigation());
+    }
+
+    function syncStorage(event: StorageEvent) {
+      if (event.key === "adversim-active-case") {
+        syncActiveInvestigation();
+      }
+    }
+
+    const frame = window.requestAnimationFrame(syncActiveInvestigation);
+    window.addEventListener("adversim-active-case", syncActiveInvestigation);
+    window.addEventListener("storage", syncStorage);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("adversim-active-case", syncActiveInvestigation);
+      window.removeEventListener("storage", syncStorage);
+    };
+  }, []);
 
   return (
     <LayoutGroup id="adversim-shell">
@@ -125,6 +161,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             Generated Educational Simulation only. All names, data, and IPs are FAKE.
           </p>
         </footer>
+
+        {hasActiveInvestigation && pathname !== "/investigation" ? (
+          <Link
+            href="/investigation"
+            className="focus-ring fixed bottom-[92px] left-1/2 z-40 inline-flex h-11 -translate-x-1/2 items-center gap-2 rounded-[18px] border border-lime/30 bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+          >
+            <Play aria-hidden size={16} />
+            Resume Investigation
+          </Link>
+        ) : null}
 
         <nav className="fixed bottom-5 left-1/2 z-40 w-[min(calc(100%-24px),900px)] -translate-x-1/2">
           <div className="glass-panel flex items-center justify-between gap-1 rounded-[28px] p-2">

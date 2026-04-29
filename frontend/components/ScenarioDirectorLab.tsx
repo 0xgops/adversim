@@ -136,6 +136,18 @@ function difficultyBadgeTone(item: ScenarioDifficulty, active: boolean) {
 
   return "border-line bg-black/25 text-zinc-400 hover:border-lime/30 hover:text-lime";
 }
+function readStoredActiveCase() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem("adversim-active-case") ?? "null") as ScenarioCase | null;
+    return parsed?.chartData?.mappedTactics && parsed?.telemetry_events?.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 function publishActiveCase(caseFile: ScenarioCase) {
   if (typeof window === "undefined") {
     return;
@@ -152,24 +164,33 @@ type ScenarioDirectorLabProps = {
 export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabProps) {
   const dailyQueue = useMemo(() => generateDailyThreatQueue(), []);
   const isQuickStart = quickStart;
-  const [family, setFamily] = useState<ScenarioFamily>("Credential Compromise");
-  const [difficulty, setDifficulty] = useState<ScenarioDifficulty>("Beginner");
+  const [initialCaseState] = useState(() => {
+    const storedCase = quickStart ? readStoredActiveCase() : null;
+    const caseFile = storedCase ?? (quickStart ? generateQuickStartCase() : dailyQueue[2].case);
+
+    return {
+      caseFile,
+      shouldShowInitialBuild: quickStart && !storedCase
+    };
+  });
+  const [family, setFamily] = useState<ScenarioFamily>(initialCaseState.caseFile.scenario_family);
+  const [difficulty, setDifficulty] = useState<ScenarioDifficulty>(initialCaseState.caseFile.difficulty);
   const [randomness, setRandomness] = useState<ScenarioRandomness>("Medium");
   const [trainingMode, setTrainingMode] = useState<TrainingMode>("Guided");
   const [caseCounter, setCaseCounter] = useState(6);
   const [quickCaseCounter, setQuickCaseCounter] = useState(1);
-  const [caseFile, setCaseFile] = useState<ScenarioCase>(() => (quickStart ? generateQuickStartCase() : dailyQueue[2].case));
+  const [caseFile, setCaseFile] = useState<ScenarioCase>(initialCaseState.caseFile);
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
   const [debrief, setDebrief] = useState<CaseDebrief | null>(null);
-  const [isBuildingCase, setIsBuildingCase] = useState(quickStart);
-  const [buildProgress, setBuildProgress] = useState(quickStart ? 0 : 1);
+  const [isBuildingCase, setIsBuildingCase] = useState(initialCaseState.shouldShowInitialBuild);
+  const [buildProgress, setBuildProgress] = useState(initialCaseState.shouldShowInitialBuild ? 0 : 1);
   const [caseHistory, setCaseHistory] = useState(() => readCaseHistory());
   const [expertMode, setExpertMode] = useState(false);
   const buildIntervalRef = useRef<number | null>(null);
   const buildTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!quickStart) {
+    if (!initialCaseState.shouldShowInitialBuild) {
       return;
     }
 
@@ -187,7 +208,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
       window.clearInterval(progressTimer);
       window.clearTimeout(doneTimer);
     };
-  }, [quickStart]);
+  }, [initialCaseState.shouldShowInitialBuild]);
 
   useEffect(() => {
     return () => {
