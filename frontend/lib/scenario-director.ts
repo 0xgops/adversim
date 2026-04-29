@@ -39,7 +39,7 @@ export const scenarioFamilies: ScenarioFamily[] = [
   "Ransomware Precursor"
 ];
 
-export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "SOC", "Analyst"];
+export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert"];
 export const scenarioRandomnessLevels: ScenarioRandomness[] = ["Low", "Medium", "Chaos Lab"];
 export const trainingModes: TrainingMode[] = ["Guided", "Blind Investigation"];
 
@@ -696,11 +696,7 @@ function severityForDifficulty(difficulty: ScenarioDifficulty, random: () => num
     return pick(["Medium", "High", "Critical"], random);
   }
 
-  if (difficulty === "SOC") {
-    return pick(["High", "Critical"], random);
-  }
-
-  return pick(["Low", "Medium", "High", "Critical"], random);
+  return pick(["High", "Critical"], random);
 }
 
 function confidenceForSeverity(severity: ScenarioCase["severity"], random: () => number) {
@@ -880,19 +876,25 @@ const quickStartFamilies: ScenarioFamily[] = [
 
 export function generateQuickStartCase({
   seed = `quick:${Date.now()}:${Math.random()}`,
-  caseNumber = 1
+  caseNumber = 1,
+  difficulty = "Beginner",
+  trainingMode = "Guided",
+  randomness = "Medium"
 }: {
   seed?: string;
   caseNumber?: number;
+  difficulty?: ScenarioDifficulty;
+  trainingMode?: TrainingMode;
+  randomness?: ScenarioRandomness;
 } = {}) {
   const random = makeRandom(seed);
   const family = pick(quickStartFamilies, random);
 
   return generateScenarioCase({
     family,
-    difficulty: "Beginner",
-    randomness: "Medium",
-    trainingMode: "Guided",
+    difficulty,
+    randomness,
+    trainingMode,
     seed,
     caseNumber,
     procedural: true,
@@ -909,7 +911,7 @@ export function generateDailyThreatQueue(seed = new Date().toDateString()) {
     "Lateral Movement",
     "Ransomware Precursor"
   ];
-  const difficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "SOC", "Analyst", "Intermediate", "SOC", "Intermediate"];
+  const difficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert", "Intermediate", "Beginner", "Expert", "Intermediate"];
   const randomness: ScenarioRandomness[] = ["Low", "Medium", "Medium", "Chaos Lab", "Low", "Medium", "Medium"];
 
   return families.map((family, index) => ({

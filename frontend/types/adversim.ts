@@ -104,7 +104,7 @@ export type ScenarioFamily =
   | "Lateral Movement"
   | "Ransomware Precursor";
 
-export type ScenarioDifficulty = "Beginner" | "Intermediate" | "SOC" | "Analyst";
+export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
 export type TrainingMode = "Guided" | "Blind Investigation";
 

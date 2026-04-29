@@ -97,6 +97,45 @@ function eventCardTone(event: EvidenceEvent, selected: boolean, debrief: CaseDeb
   return "border-line bg-black/20 opacity-75";
 }
 
+function missionRulesForDifficulty(difficulty: ScenarioDifficulty, trainingMode: TrainingMode) {
+  if (difficulty === "Expert") {
+    return "No hints provided. Severity and source tags are hidden. Trust your training and use the Dashboard Incident Heat chart to prioritize evidence.";
+  }
+
+  if (difficulty === "Intermediate") {
+    return "Severity badges are hidden. Use the Dashboard Mapped Tactics chart to decide which event types deserve attention.";
+  }
+
+  return `Severity badges and ${trainingMode === "Guided" ? "plain-English hints" : "post-submission hints"} are available. Select the events that support the incident narrative.`;
+}
+
+function evidenceHintForDifficulty(event: EvidenceEvent, difficulty: ScenarioDifficulty, trainingMode: TrainingMode, debrief: CaseDebrief | null) {
+  if (difficulty === "Expert") {
+    return debrief ? "Finding submitted. Review the debrief below for what matched, what was missed, and what was noise." : null;
+  }
+
+  if (trainingMode === "Guided" || debrief) {
+    return event.plain_english;
+  }
+
+  return "Blind investigation: submit your finding to reveal the plain-English mentor hint.";
+}
+
+function difficultyBadgeTone(item: ScenarioDifficulty, active: boolean) {
+  if (active) {
+    return "border-lime/40 bg-lime text-obsidian shadow-lime";
+  }
+
+  if (item === "Expert") {
+    return "border-crimson/35 bg-crimson/10 text-crimson hover:border-crimson/60";
+  }
+
+  if (item === "Intermediate") {
+    return "border-orange-300/35 bg-orange-300/10 text-orange-200 hover:border-orange-300/60";
+  }
+
+  return "border-line bg-black/25 text-zinc-400 hover:border-lime/30 hover:text-lime";
+}
 function publishActiveCase(caseFile: ScenarioCase) {
   if (typeof window === "undefined") {
     return;
@@ -181,6 +220,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   }, [caseFile]);
 
   const selectedSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
+  const showSeverityBadges = caseFile.difficulty === "Beginner";
+  const canRevealSourceTags = expertMode && caseFile.difficulty !== "Expert";
   const keyCount = caseFile.key_evidence_event_ids.length;
   const decoyCount = caseFile.decoy_event_ids.length;
 
@@ -240,7 +281,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
 
   function rollQuickStartCase() {
     const nextCounter = quickCaseCounter + 1;
-    const nextCase = generateQuickStartCase({ caseNumber: nextCounter });
+    const nextCase = generateQuickStartCase({ caseNumber: nextCounter, difficulty });
 
     setQuickCaseCounter(nextCounter);
     stageCaseWithLoading(nextCase);
@@ -497,6 +538,21 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
               <div className="flex flex-wrap justify-end gap-2">
                 {isQuickStart ? (
+                  <div className="flex h-9 items-center gap-1 rounded-[14px] border border-line bg-black/30 p-1" aria-label="Difficulty selector">
+                    {scenarioDifficulties.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setDifficulty(item)}
+                        className={`focus-ring technical h-7 rounded-[10px] px-2 text-[9px] uppercase tracking-[0.12em] transition ${difficultyBadgeTone(item, difficulty === item)}`}
+                        aria-pressed={difficulty === item}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {isQuickStart ? (
                   <div className="group/stage relative flex-none">
                     <button
                       type="button"
@@ -512,7 +568,13 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                     </div>
                   </div>
                 ) : null}
-                <SeverityBadge severity={caseFile.severity} />
+                {showSeverityBadges ? (
+                  <SeverityBadge severity={caseFile.severity} />
+                ) : (
+                  <span className="technical inline-flex h-7 items-center rounded-md border border-line bg-black/25 px-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                    Severity concealed
+                  </span>
+                )}
                 <span className="technical inline-flex h-7 items-center rounded-md border border-line bg-white/5 px-2 text-xs uppercase tracking-[0.16em] text-zinc-300">
                   {caseFile.difficulty}
                 </span>
@@ -539,7 +601,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical text-xs uppercase tracking-[0.22em]">Mission rules</p>
               </div>
               <p className="mt-2 text-sm leading-6 text-zinc-300">
-                Select the events that support the incident narrative. Leave routine noise unselected. {trainingMode === "Guided" ? "Plain-English hints are visible." : "Blind mode hides hints until you submit."}
+                {missionRulesForDifficulty(caseFile.difficulty, trainingMode)}
               </p>
             </div>
           </GlassCard>
@@ -554,12 +616,17 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <button
                   type="button"
                   onClick={() => setExpertMode((current) => !current)}
+                  disabled={caseFile.difficulty === "Expert"}
                   className={`focus-ring technical h-8 rounded-[12px] border px-3 text-[10px] uppercase tracking-[0.16em] transition ${
-                    expertMode ? "border-lime/40 bg-lime/10 text-lime shadow-lime" : "border-line bg-black/25 text-zinc-400 hover:border-lime/30 hover:text-ink"
+                    caseFile.difficulty === "Expert"
+                      ? "cursor-not-allowed border-line bg-black/20 text-zinc-600"
+                      : expertMode
+                        ? "border-lime/40 bg-lime/10 text-lime shadow-lime"
+                        : "border-line bg-black/25 text-zinc-400 hover:border-lime/30 hover:text-ink"
                   }`}
                   aria-pressed={expertMode}
                 >
-                  Expert Mode {expertMode ? "On" : "Off"}
+                  {caseFile.difficulty === "Expert" ? "Source Tags Locked" : `Expert Mode ${expertMode ? "On" : "Off"}`}
                 </button>
                 <div className="technical rounded-full border border-line bg-black/25 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
                   {keyCount} clues / {decoyCount} decoys
@@ -570,6 +637,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
             <div className="mt-5 grid gap-3 lg:grid-cols-2">
               {caseFile.telemetry_events.map((event, index) => {
                 const selected = selectedSet.has(event.event_id);
+                const evidenceHint = evidenceHintForDifficulty(event, caseFile.difficulty, trainingMode, debrief);
                 return (
                   <motion.button
                     key={event.event_id}
@@ -586,15 +654,15 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                         <h3 className="mt-3 text-base font-semibold text-ink">{event.summary}</h3>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <SeverityBadge severity={event.severity} />
+                        {showSeverityBadges ? <SeverityBadge severity={event.severity} /> : null}
                         <EvidenceStatus event={event} selected={selected} debrief={debrief} />
                       </div>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-zinc-400">
-                      {trainingMode === "Guided" || debrief ? event.plain_english : "Blind investigation: submit your finding to reveal the plain-English mentor hint."}
-                    </p>
+                    {evidenceHint ? (
+                      <p className="mt-3 text-sm leading-6 text-zinc-400">{evidenceHint}</p>
+                    ) : null}
                     <AnimatePresence initial={false}>
-                      {expertMode ? (
+                      {canRevealSourceTags ? (
                         <motion.div
                           className="mt-4 flex flex-wrap gap-2"
                           initial={{ opacity: 0, y: -6 }}
