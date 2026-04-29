@@ -45,9 +45,16 @@ function confidenceForEvent(caseFile: ScenarioCase, event: EvidenceEvent, index:
   return Math.max(58, Math.min(97, caseFile.confidence + severityBoost[event.severity] - index * 2));
 }
 
+function ensureSentence(value: string) {
+  const trimmed = value.trim();
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 function recommendationForEvent(caseFile: ScenarioCase, event: EvidenceEvent) {
   const tactic = tacticForEvent(event);
-  const baseResponse = caseFile.recommended_response[0] ?? "Review the correlated synthetic telemetry and preserve the evidence chain.";
+  const baseResponse = ensureSentence(
+    caseFile.recommended_response[0] ?? "Review the correlated synthetic telemetry and preserve the evidence chain."
+  );
 
   if (tactic === "Credential Access") return `${baseResponse} Validate sign-in context and confirm whether the account activity is expected.`;
   if (tactic === "Execution") return `${baseResponse} Inspect endpoint lineage and compare the behavior against approved administrative workflows.`;
@@ -168,3 +175,4 @@ export default function DetectionsPage() {
     </div>
   );
 }
+
