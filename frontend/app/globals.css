@@ -51,6 +51,62 @@ textarea {
   @apply border border-line bg-panel/80 shadow-soft backdrop-blur-[20px];
 }
 
+.soc-view main {
+  font-size: 14px;
+}
+
+.soc-view main .glass-panel {
+  border-color: rgba(223, 255, 0, 0.2);
+  background: rgba(10, 10, 10, 0.82);
+  box-shadow: none;
+  padding: 0.875rem !important;
+  border-radius: 18px !important;
+}
+
+.soc-view .soc-precision {
+  border-color: rgba(223, 255, 0, 0.22) !important;
+  box-shadow: none !important;
+}
+
+.soc-view .soc-compact-card {
+  padding: 0.75rem !important;
+  border-color: rgba(223, 255, 0, 0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+.soc-view .soc-terminal-copy {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.soc-view .soc-dense-gap {
+  gap: 0.75rem !important;
+}
+
+.soc-view .soc-dense-stack {
+  row-gap: 0.75rem !important;
+}
+
+.soc-view main .shadow-lime,
+.soc-view main .shadow-soft {
+  box-shadow: none !important;
+}
+
+.soc-view main :is(.glass-panel, .guide-glass, .soc-compact-card, section, article, button, a, div, p, h1, h2, h3) {
+  transition:
+    padding 200ms ease-in-out,
+    gap 200ms ease-in-out,
+    margin 200ms ease-in-out,
+    font-size 200ms ease-in-out,
+    line-height 200ms ease-in-out,
+    border-color 200ms ease-in-out,
+    box-shadow 200ms ease-in-out,
+    background-color 200ms ease-in-out,
+    color 200ms ease-in-out;
+}
+
 .guide-glass {
   border: 0.5px solid rgba(255, 255, 255, 0.16);
   background:

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, Database, RadioTower } from "lucide-react";
+import { useViewMode } from "@/components/ViewModeProvider";
 import { readActiveCase, subscribeToActiveCase } from "@/lib/active-case";
 import type { ScenarioCase } from "@/types/adversim";
 
@@ -26,6 +27,7 @@ function severityClass(severity: string) {
 
 export default function TelemetryPage() {
   const [activeCase, setActiveCase] = useState<ScenarioCase | null>(readActiveCase);
+  const { isSocView } = useViewMode();
 
   useEffect(() => {
     return subscribeToActiveCase(setActiveCase);
@@ -35,10 +37,10 @@ export default function TelemetryPage() {
   const sourceMix = useMemo(() => Array.from(new Set(telemetry.map((event) => event.source))), [telemetry]);
 
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
       <motion.section
         layoutId="telemetry-pulse-panel"
-        className="glass-panel rounded-[32px] p-6 sm:p-8"
+        className={`glass-panel soc-precision rounded-[32px] ${isSocView ? "p-4" : "p-6 sm:p-8"}`}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
       >
         <div className="flex flex-wrap items-start justify-between gap-5">
@@ -58,9 +60,9 @@ export default function TelemetryPage() {
         </div>
       </motion.section>
 
-      <section className="grid gap-5 lg:grid-cols-[1fr_330px]">
-        <div className="glass-panel overflow-hidden rounded-[24px]">
-          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+      <section className={`grid ${isSocView ? "gap-3 lg:grid-cols-1" : "gap-5 lg:grid-cols-[1fr_330px]"}`}>
+        <div className="glass-panel soc-precision overflow-hidden rounded-[24px]">
+          <div className={`flex items-center justify-between border-b border-line ${isSocView ? "px-3 py-3" : "px-5 py-4"}`}>
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] border border-line bg-lime/10 text-lime">
                 <Activity aria-hidden size={18} />
@@ -73,18 +75,18 @@ export default function TelemetryPage() {
           </div>
 
           {telemetry.length ? (
-            <motion.ul layout className="max-h-[620px] divide-y divide-line overflow-hidden">
+            <motion.ul layout className={`${isSocView ? "max-h-[720px]" : "max-h-[620px]"} divide-y divide-line overflow-hidden`}>
               {telemetry.map((event, index) => (
                 <motion.li
                   key={event.event_id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.24, delay: index * 0.035 }}
-                  className="grid gap-3 px-5 py-4 lg:grid-cols-[120px_140px_1fr_110px]"
+                  className={`soc-terminal-copy grid ${isSocView ? "gap-2 px-3 py-3 lg:grid-cols-[125px_130px_1fr_96px]" : "gap-3 px-5 py-4 lg:grid-cols-[120px_140px_1fr_110px]"}`}
                 >
                   <span className="technical text-xs text-lime">{event.timestamp}</span>
                   <span className="technical text-xs uppercase tracking-[0.18em] text-zinc-500">{event.source}</span>
-                  <p className="technical text-sm leading-6 text-zinc-200">{event.summary}</p>
+                <p className="technical text-sm leading-6 text-zinc-200">{event.summary}</p>
                   <span
                     className={`technical inline-flex h-7 w-fit items-center rounded-full border px-2.5 text-[10px] uppercase tracking-[0.18em] ${severityClass(
                       event.severity
@@ -108,7 +110,8 @@ export default function TelemetryPage() {
           )}
         </div>
 
-        <aside className="glass-panel rounded-[24px] p-5">
+        {!isSocView ? (
+        <aside className="glass-panel soc-precision rounded-[24px] p-5">
           <div className="grid h-12 w-12 place-items-center rounded-[16px] border border-line bg-white/5 text-lime">
             <Database aria-hidden size={21} />
           </div>
@@ -132,6 +135,7 @@ export default function TelemetryPage() {
             )}
           </div>
         </aside>
+        ) : null}
       </section>
     </div>
   );

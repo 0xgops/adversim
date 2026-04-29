@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Route } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
+import { useViewMode } from "@/components/ViewModeProvider";
 import { readActiveCase, subscribeToActiveCase } from "@/lib/active-case";
 import type { EvidenceEvent, ScenarioCase } from "@/types/adversim";
 
@@ -19,6 +20,7 @@ function tacticForEvent(event: EvidenceEvent) {
 
 export default function TimelinePage() {
   const [activeCase, setActiveCase] = useState<ScenarioCase | null>(readActiveCase);
+  const { isSocView } = useViewMode();
 
   useEffect(() => {
     return subscribeToActiveCase(setActiveCase);
@@ -30,8 +32,8 @@ export default function TimelinePage() {
   );
 
   return (
-    <div className="space-y-5">
-      <section className="glass-panel rounded-[32px] p-6 sm:p-8">
+    <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
+      <section className={`glass-panel soc-precision rounded-[32px] ${isSocView ? "p-4" : "p-6 sm:p-8"}`}>
         <p className="technical text-xs uppercase tracking-[0.32em] text-lime">Attack Timeline</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-normal text-ink sm:text-5xl">
           Reconstructed Incident Sequence
@@ -44,15 +46,15 @@ export default function TimelinePage() {
       </section>
 
       {timeline.length ? (
-        <section className="glass-panel rounded-[24px] p-6">
-          <ol className="relative space-y-6 border-l border-line pl-6">
+        <section className={`glass-panel soc-precision rounded-[24px] ${isSocView ? "p-4" : "p-6"}`}>
+          <ol className={`relative border-l border-line pl-6 ${isSocView ? "space-y-3" : "space-y-6"}`}>
             {timeline.map((item, index) => (
               <motion.li
                 key={`${activeCase?.case_id}-${item.event_id}`}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.25, delay: index * 0.04 }}
-                className="relative rounded-[20px] border border-line bg-black/25 p-4"
+                className={`soc-compact-card relative rounded-[20px] border border-line bg-black/25 ${isSocView ? "p-3" : "p-4"}`}
               >
                 <span className="absolute -left-[33px] top-5 grid h-4 w-4 place-items-center rounded-full border-2 border-obsidian bg-lime shadow-lime" />
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -64,7 +66,7 @@ export default function TimelinePage() {
                   </div>
                   <SeverityBadge severity={item.severity} />
                 </div>
-                <p className="mt-3 text-sm leading-6 text-zinc-300">{item.plain_english}</p>
+                <p className={`mt-3 text-sm leading-6 text-zinc-300 ${isSocView ? "soc-terminal-copy" : ""}`}>{item.plain_english}</p>
                 <p className="technical mt-4 inline-flex items-center gap-2 rounded-full border border-line bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-zinc-300">
                   <Route aria-hidden size={13} className="text-lime" />
                   {tacticForEvent(item)}
@@ -74,7 +76,7 @@ export default function TimelinePage() {
           </ol>
         </section>
       ) : (
-        <section className="glass-panel grid min-h-[420px] place-items-center rounded-[24px] p-6">
+        <section className={`glass-panel soc-precision grid min-h-[420px] place-items-center rounded-[24px] ${isSocView ? "p-4" : "p-6"}`}>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

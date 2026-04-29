@@ -31,6 +31,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { useViewMode } from "@/components/ViewModeProvider";
 import { getLatestSimulation } from "@/lib/api";
 import { clearActiveCaseState } from "@/lib/active-case";
 import { clearCaseHistory, readCaseHistory } from "@/lib/case-history";
@@ -71,7 +72,7 @@ function BentoCard({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <section className={`glass-panel rounded-[24px] p-5 ${className}`}>{children}</section>;
+  return <section className={`glass-panel soc-precision rounded-[24px] p-5 ${className}`}>{children}</section>;
 }
 
 function getInitialDashboardCase() {
@@ -104,7 +105,8 @@ export default function DashboardPage() {
   const [metricProgress, setMetricProgress] = useState(0);
   const [hasCompletedRun, setHasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
-  const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
+  const { isSocView, setIsSocView } = useViewMode();
+  const audienceMode = isSocView ? "soc" : "beginner";
   const [activeCase, setActiveCase] = useState<ScenarioCase | null>(getInitialDashboardCase);
   const [chartRevision, setChartRevision] = useState(0);
   const [caseHistoryCount, setCaseHistoryCount] = useState(() => readCaseHistory().length);
@@ -313,7 +315,7 @@ export default function DashboardPage() {
     }
   ];
   return (
-    <div className="space-y-5">
+    <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
       {toastMessage ? (
         <motion.div
           initial={{ opacity: 0, y: -10, scale: 0.98 }}
@@ -325,10 +327,10 @@ export default function DashboardPage() {
       ) : null}
       <motion.section
         layoutId="builder-hero"
-        className="glass-panel relative overflow-hidden rounded-[32px] p-6 sm:p-8 lg:p-10"
+        className={`glass-panel soc-precision relative overflow-hidden rounded-[32px] ${isSocView ? "p-4" : "p-6 sm:p-8 lg:p-10"}`}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
       >
-        <div className="relative z-10 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-end">
+        <div className={`relative z-10 grid lg:items-end ${isSocView ? "gap-4 lg:grid-cols-[1fr_300px]" : "gap-8 lg:grid-cols-[1fr_360px]"}`}>
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
@@ -352,7 +354,7 @@ export default function DashboardPage() {
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setAudienceMode(mode as "beginner" | "soc")}
+                  onClick={() => setIsSocView(mode === "soc")}
                   className={`focus-ring rounded-full px-4 py-2 text-xs font-semibold transition ${
                     audienceMode === mode ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
                   }`}
@@ -361,6 +363,7 @@ export default function DashboardPage() {
                 </button>
               ))}
             </div>
+            {!isSocView ? (
             <div className="mt-5 max-w-2xl rounded-[22px] border border-lime/20 bg-lime/[0.06] p-4">
               <div className="flex items-center gap-2 text-lime">
                 <GraduationCap aria-hidden size={17} />
@@ -374,6 +377,7 @@ export default function DashboardPage() {
                   : "Run a controlled adversary simulation, inspect synthetic telemetry, validate correlated detections, reconstruct sequence, and produce an analyst-ready incident brief."}
               </p>
             </div>
+            ) : null}
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/investigation"
@@ -411,7 +415,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-line bg-black/30 p-5">
+          <div className={`soc-compact-card rounded-[24px] border border-line bg-black/30 ${isSocView ? "p-3" : "p-5"}`}>
             <div className="flex items-center justify-between">
               <p className="technical text-xs uppercase tracking-[0.25em] text-zinc-500">
                 {hasCompletedRun ? "Investigation complete" : "Mission"}
@@ -469,16 +473,16 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
-      <section className="grid gap-5 lg:grid-cols-4">
+      <section className={`grid lg:grid-cols-4 ${isSocView ? "gap-3" : "gap-5"}`}>
         {metrics.map((metric) => {
           const MetricIcon = metric.icon;
 
           return (
             <BentoCard key={metric.label} className="relative overflow-visible">
-              <div className="flex items-start justify-between gap-4">
+              <div className={`flex items-start justify-between ${isSocView ? "gap-2" : "gap-4"}`}>
                 <div>
                   <p className="technical text-xs uppercase tracking-[0.24em] text-zinc-500">{metric.label}</p>
-                  <p className="mt-3 text-4xl font-semibold text-ink">{metric.value}</p>
+                  <p className={`${isSocView ? "mt-2 text-3xl" : "mt-3 text-4xl"} font-semibold text-ink`}>{metric.value}</p>
                 </div>
                 <button
                   type="button"
@@ -496,7 +500,7 @@ export default function DashboardPage() {
                   <MetricIcon aria-hidden size={20} />
                 </button>
               </div>
-              <p className="mt-4 text-sm text-zinc-400">{metric.helper}</p>
+              <p className={`${isSocView ? "mt-2 text-xs" : "mt-4 text-sm"} text-zinc-400`}>{metric.helper}</p>
               {activeMetricInfo === metric.label ? (
                 <motion.div
                   initial={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -513,9 +517,9 @@ export default function DashboardPage() {
         })}
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-        <BentoCard className="min-h-[360px]">
-          <div className="mb-5 flex items-center justify-between gap-4">
+      <section className={`grid ${isSocView ? "gap-3 xl:grid-cols-2" : "gap-5 lg:grid-cols-[1.15fr_0.85fr]"}`}>
+        <BentoCard className={isSocView ? "min-h-[420px]" : "min-h-[360px]"}>
+          <div className={`${isSocView ? "mb-2" : "mb-5"} flex items-center justify-between gap-4`}>
             <div>
               <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
                 Detection coverage
@@ -529,7 +533,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={navigateFromTactics}
-            className="focus-ring relative block h-72 w-full cursor-pointer rounded-[18px] text-left"
+            className={`focus-ring relative block w-full cursor-pointer rounded-[18px] text-left ${isSocView ? "h-[350px]" : "h-72"}`}
             aria-label={hasCompletedRun ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
@@ -566,8 +570,8 @@ export default function DashboardPage() {
           </p>
         </BentoCard>
 
-        <BentoCard className="min-h-[360px]">
-          <div className="mb-5">
+        <BentoCard className={isSocView ? "min-h-[420px]" : "min-h-[360px]"}>
+          <div className={isSocView ? "mb-2" : "mb-5"}>
             <p className="technical text-xs uppercase tracking-[0.24em] text-crimson">
               Incident heat
             </p>
@@ -576,7 +580,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={navigateFromSeverity}
-            className="focus-ring relative block h-72 w-full cursor-pointer rounded-[18px]"
+            className={`focus-ring relative block w-full cursor-pointer rounded-[18px] ${isSocView ? "h-[350px]" : "h-72"}`}
             aria-label={hasCompletedRun ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
@@ -624,7 +628,7 @@ export default function DashboardPage() {
 
       <motion.section
         layoutId="telemetry-pulse-panel"
-        className="glass-panel rounded-[24px] p-5"
+        className={`glass-panel soc-precision rounded-[24px] ${isSocView ? "p-3" : "p-5"}`}
         transition={{ type: "spring", stiffness: 260, damping: 30 }}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -642,9 +646,9 @@ export default function DashboardPage() {
             <Compass aria-hidden className="text-lime" size={20} />
           )}
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-5">
+        <div className={`grid md:grid-cols-5 ${isSocView ? "mt-3 gap-2" : "mt-5 gap-3"}`}>
           {["Builder", "Telemetry", "Detections", "Timeline", "Report"].map((step, index) => (
-            <div key={step} className="rounded-[18px] border border-line bg-black/25 p-4">
+            <div key={step} className={`soc-compact-card rounded-[18px] border border-line bg-black/25 ${isSocView ? "p-2" : "p-4"}`}>
               <p className="technical text-[11px] uppercase tracking-[0.22em] text-zinc-500">0{index + 1}</p>
               <p className="mt-3 text-sm font-semibold text-ink">{step}</p>
             </div>

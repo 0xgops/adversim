@@ -18,6 +18,7 @@ import {
   XCircle
 } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
+import { useViewMode } from "@/components/ViewModeProvider";
 import { readCaseHistory, recordCaseHistory } from "@/lib/case-history";
 import {
   generateDailyThreatQueue,
@@ -40,7 +41,7 @@ import type {
 } from "@/types/adversim";
 
 function GlassCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`glass-panel rounded-[28px] p-5 ${className}`}>{children}</section>;
+  return <section className={`glass-panel soc-precision rounded-[28px] p-5 ${className}`}>{children}</section>;
 }
 
 function OptionButton({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
@@ -162,6 +163,7 @@ type ScenarioDirectorLabProps = {
 };
 
 export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabProps) {
+  const { isSocView } = useViewMode();
   const dailyQueue = useMemo(() => generateDailyThreatQueue(), []);
   const isQuickStart = quickStart;
   const [initialCaseState] = useState(() => {
@@ -370,14 +372,14 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isSocView ? "soc-dense-stack" : ""}`}>
       {!isQuickStart ? (
         <motion.section
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="guide-glass relative overflow-hidden rounded-[32px] p-6 sm:p-8"
+        className={`guide-glass relative overflow-hidden rounded-[32px] ${isSocView ? "p-4" : "p-6 sm:p-8"}`}
       >
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_360px] lg:items-end">
+        <div className={`relative z-10 grid lg:items-end ${isSocView ? "gap-4 lg:grid-cols-[1fr_300px]" : "gap-6 lg:grid-cols-[1fr_360px]"}`}>
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
@@ -408,9 +410,9 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
         </motion.section>
       ) : null}
 
-      <section className={isQuickStart ? "grid gap-5" : "grid gap-5 xl:grid-cols-[330px_1fr]"}>
+      <section className={isQuickStart ? `grid ${isSocView ? "gap-3" : "gap-5"}` : `grid ${isSocView ? "gap-3 xl:grid-cols-[280px_1fr]" : "gap-5 xl:grid-cols-[330px_1fr]"}`}>
         {!isQuickStart ? (
-          <div className="space-y-5">
+          <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
           <GlassCard>
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-[14px] border border-lime/25 bg-lime/10 text-lime shadow-lime">
@@ -539,15 +541,15 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
           </div>
         ) : null}
 
-        <div className="space-y-5">
-          <GlassCard className={isQuickStart ? "guide-glass" : ""}>
+        <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
+          <GlassCard className={isQuickStart ? (isSocView ? "" : "guide-glass") : ""}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
                 <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
                   {isQuickStart ? "60-second investigation" : "Custom Lab Builder"}
                 </p>
-                <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Investigation Prompt</h1>
-                <p className="mt-3 text-base leading-7 text-zinc-200">{caseFile.case_briefing}</p>
+                <h1 className={`${isSocView ? "mt-1 text-2xl sm:text-3xl" : "mt-2 text-3xl sm:text-4xl"} font-semibold text-ink`}>Investigation Prompt</h1>
+                <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-base leading-7"} text-zinc-200`}>{caseFile.case_briefing}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="technical rounded-full border border-line bg-black/25 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
                     {caseFile.case_id}
@@ -602,26 +604,26 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 md:grid-cols-4">
+            <div className={`grid md:grid-cols-4 ${isSocView ? "mt-3 gap-2" : "mt-5 gap-3"}`}>
               {[
                 ["Target user", caseFile.target_user],
                 ["Target host", caseFile.target_host],
                 ["Profile", caseFile.attacker_profile],
                 ["Confidence", `${caseFile.confidence}%`]
               ].map(([label, value]) => (
-                <div key={label} className="rounded-[18px] border border-line bg-black/25 p-4">
+                <div key={label} className={`soc-compact-card rounded-[18px] border border-line bg-black/25 ${isSocView ? "p-3" : "p-4"}`}>
                   <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">{label}</p>
                   <p className="technical mt-2 text-sm leading-5 text-zinc-200">{value}</p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 rounded-[18px] border border-line bg-white/[0.035] p-4">
+            <div className={`soc-compact-card rounded-[18px] border border-line bg-white/[0.035] ${isSocView ? "mt-3 p-3" : "mt-5 p-4"}`}>
               <div className="flex items-center gap-2 text-lime">
                 <Eye aria-hidden size={16} />
                 <p className="technical text-xs uppercase tracking-[0.22em]">Mission rules</p>
               </div>
-              <p className="mt-2 text-sm leading-6 text-zinc-300">
+              <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-2 text-sm leading-6"} text-zinc-300`}>
                 {missionRulesForDifficulty(caseFile.difficulty, trainingMode)}
               </p>
             </div>
@@ -655,7 +657,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 lg:grid-cols-2">
+            <div className={`grid ${isSocView ? "mt-3 gap-2 xl:grid-cols-3" : "mt-5 gap-3 lg:grid-cols-2"}`}>
               {caseFile.telemetry_events.map((event, index) => {
                 const selected = selectedSet.has(event.event_id);
                 const evidenceHint = evidenceHintForDifficulty(event, caseFile.difficulty, trainingMode, debrief);
@@ -667,12 +669,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.24, delay: index * 0.03 }}
-                    className={`focus-ring rounded-[22px] border p-4 text-left transition ${eventCardTone(event, selected, debrief)}`}
+                    className={`focus-ring soc-compact-card rounded-[22px] border text-left transition ${isSocView ? "p-3" : "p-4"} ${eventCardTone(event, selected, debrief)}`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="technical text-[10px] uppercase tracking-[0.2em] text-lime">{event.timestamp} / {event.source}</p>
-                        <h3 className="mt-3 text-base font-semibold text-ink">{event.summary}</h3>
+                        <h3 className={`${isSocView ? "soc-terminal-copy mt-2 font-semibold" : "mt-3 text-base font-semibold"} text-ink`}>{event.summary}</h3>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         {showSeverityBadges ? <SeverityBadge severity={event.severity} /> : null}
@@ -680,7 +682,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                       </div>
                     </div>
                     {evidenceHint ? (
-                      <p className="mt-3 text-sm leading-6 text-zinc-400">{evidenceHint}</p>
+                      <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-sm leading-6"} text-zinc-400`}>{evidenceHint}</p>
                     ) : null}
                     <AnimatePresence initial={false}>
                       {canRevealSourceTags ? (
@@ -709,8 +711,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               })}
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-line bg-black/30 p-4">
-              <p className="text-sm leading-6 text-zinc-400">
+            <div className={`soc-compact-card flex flex-wrap items-center justify-between rounded-[20px] border border-line bg-black/30 ${isSocView ? "mt-3 gap-2 p-3" : "mt-5 gap-3 p-4"}`}>
+              <p className={`${isSocView ? "soc-terminal-copy" : "text-sm leading-6"} text-zinc-400`}>
                 Selected <span className="text-lime">{selectedEventIds.length}</span> events. Submit when your finding tells a clear story.
               </p>
               <div className="flex gap-2">

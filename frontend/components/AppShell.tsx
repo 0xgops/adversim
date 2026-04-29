@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { GuideWidget } from "@/components/GuideWidget";
 import { PitchWidget } from "@/components/PitchWidget";
+import { ViewModeProvider, useViewMode } from "@/components/ViewModeProvider";
 import { getAiStatus } from "@/lib/api";
 import { clearActiveCaseState, readActiveCase } from "@/lib/active-case";
 import type { AIStatus } from "@/types/adversim";
@@ -84,9 +85,10 @@ function AIStatusPill() {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+function AppShellContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
+  const { isSocView, setIsSocView } = useViewMode();
 
   function closeActiveInvestigation() {
     clearActiveCaseState();
@@ -138,6 +140,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
 
             <div className="flex items-center gap-3">
+              <div className="glass-panel hidden items-center rounded-full p-1 sm:flex">
+                {[
+                  ["Beginner", false],
+                  ["SOC", true]
+                ].map(([label, enabled]) => (
+                  <button
+                    key={label as string}
+                    type="button"
+                    onClick={() => setIsSocView(Boolean(enabled))}
+                    className={`focus-ring technical h-8 rounded-full px-3 text-[10px] uppercase tracking-[0.16em] transition ${
+                      isSocView === Boolean(enabled) ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
+                    }`}
+                    aria-pressed={isSocView === Boolean(enabled)}
+                  >
+                    {label as string}
+                  </button>
+                ))}
+              </div>
               <div className="glass-panel hidden items-center gap-3 rounded-full px-4 py-2 md:flex">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-40" />
@@ -153,9 +173,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="relative z-10 mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
-        <PitchWidget />
-        <GuideWidget />
+        <main className={`relative z-10 mx-auto px-4 py-8 sm:px-6 lg:px-8 ${isSocView ? "max-w-[1500px] py-5" : "max-w-7xl"}`}>{children}</main>
+        {!isSocView ? <PitchWidget /> : null}
+        {!isSocView ? <GuideWidget /> : null}
 
         <footer className="pointer-events-none relative z-10 mx-auto max-w-3xl px-6 pb-3 text-center">
           <p className="technical text-[10px] leading-5 tracking-[0.2em] text-zinc-500">
@@ -219,6 +239,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
       </div>
     </LayoutGroup>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <ViewModeProvider>
+      <AppShellContent>{children}</AppShellContent>
+    </ViewModeProvider>
   );
 }
 
