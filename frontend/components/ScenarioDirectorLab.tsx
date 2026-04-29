@@ -10,6 +10,7 @@ import {
   Eye,
   FileText,
   GraduationCap,
+  History,
   RefreshCw,
   ShieldAlert,
   Sparkles,
@@ -17,6 +18,7 @@ import {
   XCircle
 } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
+import { readCaseHistory, recordCaseHistory } from "@/lib/case-history";
 import {
   generateDailyThreatQueue,
   generateQuickStartCase,
@@ -101,6 +103,7 @@ function publishActiveCase(caseFile: ScenarioCase) {
   }
 
   window.localStorage.setItem("adversim-active-case", JSON.stringify(caseFile));
+  recordCaseHistory(caseFile);
   window.dispatchEvent(new CustomEvent("adversim-active-case", { detail: caseFile }));
 }
 type ScenarioDirectorLabProps = {
@@ -121,6 +124,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const [debrief, setDebrief] = useState<CaseDebrief | null>(null);
   const [isBuildingCase, setIsBuildingCase] = useState(quickStart);
   const [buildProgress, setBuildProgress] = useState(quickStart ? 0 : 1);
+  const [caseHistory, setCaseHistory] = useState(() => readCaseHistory());
+  const [expertMode, setExpertMode] = useState(false);
   const buildIntervalRef = useRef<number | null>(null);
   const buildTimeoutRef = useRef<number | null>(null);
 
@@ -154,6 +159,20 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
       if (buildTimeoutRef.current !== null) {
         window.clearTimeout(buildTimeoutRef.current);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    function syncCaseHistory(event: Event) {
+      setCaseHistory((event as CustomEvent<ReturnType<typeof readCaseHistory>>).detail ?? readCaseHistory());
+    }
+
+    const frame = window.requestAnimationFrame(() => setCaseHistory(readCaseHistory()));
+    window.addEventListener("adversim-case-history", syncCaseHistory);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("adversim-case-history", syncCaseHistory);
     };
   }, []);
 
@@ -400,6 +419,33 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
           <GlassCard>
             <div className="flex items-center justify-between gap-3">
               <div>
+                <p className="technical text-xs uppercase tracking-[0.24em] text-lime">Case History</p>
+                <h2 className="mt-2 text-lg font-semibold text-ink">Last 5 investigations</h2>
+              </div>
+              <History aria-hidden size={19} className="text-lime" />
+            </div>
+            <div className="mt-4 space-y-3">
+              {caseHistory.length ? caseHistory.map((item) => (
+                <div key={`${item.case_id}-${item.staged_at}`} className="rounded-[18px] border border-line bg-black/25 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="technical text-[10px] uppercase tracking-[0.18em] text-lime">
+                      {new Date(item.staged_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <SeverityBadge severity={item.severity} />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-ink">{item.title}</p>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">{item.scenario_family} / {item.target_host}</p>
+                </div>
+              )) : (
+                <div className="rounded-[18px] border border-line bg-black/25 p-3">
+                  <p className="text-sm leading-5 text-zinc-400">Stage a case to populate the investigation history.</p>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+          <GlassCard>
+            <div className="flex items-center justify-between gap-3">
+              <div>
                 <p className="technical text-xs uppercase tracking-[0.24em] text-lime">Daily Threat Queue</p>
                 <h2 className="mt-2 text-lg font-semibold text-ink">Synthetic SOC shift</h2>
               </div>
@@ -504,8 +550,20 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical text-xs uppercase tracking-[0.24em] text-lime">Evidence Board</p>
                 <h2 className="mt-2 text-xl font-semibold text-ink">Select suspicious events</h2>
               </div>
-              <div className="technical rounded-full border border-line bg-black/25 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
-                {keyCount} clues / {decoyCount} decoys
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExpertMode((current) => !current)}
+                  className={`focus-ring technical h-8 rounded-[12px] border px-3 text-[10px] uppercase tracking-[0.16em] transition ${
+                    expertMode ? "border-lime/40 bg-lime/10 text-lime shadow-lime" : "border-line bg-black/25 text-zinc-400 hover:border-lime/30 hover:text-ink"
+                  }`}
+                  aria-pressed={expertMode}
+                >
+                  Expert Mode {expertMode ? "On" : "Off"}
+                </button>
+                <div className="technical rounded-full border border-line bg-black/25 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+                  {keyCount} clues / {decoyCount} decoys
+                </div>
               </div>
             </div>
 
@@ -535,18 +593,20 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                     <p className="mt-3 text-sm leading-6 text-zinc-400">
                       {trainingMode === "Guided" || debrief ? event.plain_english : "Blind investigation: submit your finding to reveal the plain-English mentor hint."}
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {event.source_ref ? (
-                        <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-lime">
-                          Source: {event.source_ref}
-                        </span>
-                      ) : null}
-                      {event.tags.map((tag) => (
-                        <span key={tag} className="technical rounded-full border border-line bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+                    {expertMode ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {event.source_ref ? (
+                          <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-lime">
+                            Source: {event.source_ref}
+                          </span>
+                        ) : null}
+                        {event.tags.map((tag) => (
+                          <span key={tag} className="technical rounded-full border border-line bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
                   </motion.button>
                 );
               })}

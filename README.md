@@ -95,6 +95,14 @@ ADVERSIM_AI_MAX_DAILY_CALLS=100
 ADVERSIM_ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
 ```
 
+Optional Neon case-history schema:
+
+```text
+backend/db/case_history.sql
+```
+
+The frontend keeps the last five staged investigations locally for the demo. The SQL schema is ready for Neon when persistent user history is enabled.
+
 Frontend environment variable:
 
 ```text
@@ -151,5 +159,3 @@ Main navigation:
 - Add report export to PDF
 - Add additional scenario templates
 - Connect Scenario Director debriefs to live AI when demo budget allows
-
-
