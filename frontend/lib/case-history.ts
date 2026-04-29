@@ -61,3 +61,13 @@ export function recordCaseHistory(caseFile: ScenarioCase) {
 
   return nextHistory;
 }
+export function clearCaseHistory() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  window.localStorage.removeItem(CASE_HISTORY_KEY);
+  window.dispatchEvent(new CustomEvent("adversim-case-history", { detail: [] }));
+
+  return [];
+}

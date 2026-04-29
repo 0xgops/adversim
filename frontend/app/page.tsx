@@ -12,6 +12,7 @@ import {
   History,
   Play,
   Radar,
+  RefreshCw,
   Route,
   ShieldAlert,
   Sparkles
@@ -31,9 +32,8 @@ import {
   YAxis
 } from "recharts";
 import { getLatestSimulation } from "@/lib/api";
-import { readCaseHistory } from "@/lib/case-history";
+import { clearCaseHistory, readCaseHistory } from "@/lib/case-history";
 import { simulation as fallbackSimulation } from "@/lib/mock-data";
-import { generateQuickStartCase } from "@/lib/scenario-director";
 import type { ScenarioCase, SimulationResult } from "@/types/adversim";
 import type { LucideIcon } from "lucide-react";
 
@@ -42,15 +42,13 @@ const severityColors: Record<string, string> = {
   Critical: "#ff2d55",
   Medium: "#dfff00",
   Low: "#60a5fa",
-  Ready: "#dfff00"
+  Ready: "#dfff00",
+  Idle: "#2a2a2a"
 };
 
 const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"];
 const severityLabels = ["Low", "Medium", "High", "Critical"];
 
-function getInitialActiveCase() {
-  return generateQuickStartCase({ seed: "dashboard-static-preview", caseNumber: 1 });
-}
 
 function parseStoredActiveCase(value: string | null) {
   if (!value) {
@@ -75,6 +73,13 @@ function BentoCard({
   return <section className={`glass-panel rounded-[24px] p-5 ${className}`}>{children}</section>;
 }
 
+function getInitialDashboardCase() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return parseStoredActiveCase(window.localStorage.getItem("adversim-active-case"));
+}
 function getInitialRunState() {
   if (typeof window === "undefined") {
     return false;
@@ -96,13 +101,14 @@ export default function DashboardPage() {
   const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
   const [chartsReady, setChartsReady] = useState(false);
   const [metricProgress, setMetricProgress] = useState(0);
-  const [hasCompletedRun] = useState(getInitialRunState);
+  const [hasCompletedRun, setHasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
   const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
-  const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
+  const [activeCase, setActiveCase] = useState<ScenarioCase | null>(getInitialDashboardCase);
   const [chartRevision, setChartRevision] = useState(0);
   const [caseHistoryCount, setCaseHistoryCount] = useState(() => readCaseHistory().length);
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(getInitialActiveInvestigationState);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setChartsReady(true));
@@ -129,7 +135,7 @@ export default function DashboardPage() {
 
     function clearActiveInvestigation() {
       setHasActiveInvestigation(false);
-      setActiveCase(getInitialActiveCase());
+      setActiveCase(null);
       setChartRevision((current) => current + 1);
     }
 
@@ -216,19 +222,46 @@ export default function DashboardPage() {
     };
   }, [result.summary.incident_count, result.summary.confidence, result.telemetry.length, result.timeline.length]);
 
+  const isSystemIdle = !activeCase;
+
   const severityData = useMemo(() => {
+    if (!activeCase) {
+      return [{ severity: "Idle", count: 1 }];
+    }
+
     const data = severityLabels.map((severity, index) => ({
       severity,
       count: activeCase.chartData.severityHeat[index] ?? 0
     }));
 
-    return data.some((item) => item.count > 0) ? data.filter((item) => item.count > 0) : [{ severity: "Low", count: 1 }];
+    return data.some((item) => item.count > 0) ? data.filter((item) => item.count > 0) : [{ severity: "Idle", count: 1 }];
   }, [activeCase]);
 
-  const tacticData = useMemo(() => tacticLabels.map((tactic, index) => ({
-    tactic,
-    count: activeCase.chartData.mappedTactics[index] ?? 0
-  })), [activeCase]);
+  const tacticData = useMemo(() => {
+    if (!activeCase) {
+      return tacticLabels.map((tactic) => ({ tactic, count: 0.12 }));
+    }
+
+    return tacticLabels.map((tactic, index) => ({
+      tactic,
+      count: activeCase.chartData.mappedTactics[index] ?? 0
+    }));
+  }, [activeCase]);
+
+  function resetEnvironment() {
+    window.localStorage.removeItem("adversim-active-case");
+    window.localStorage.removeItem("adversim-last-run");
+    clearCaseHistory();
+    setActiveCase(null);
+    setHasActiveInvestigation(false);
+    setHasCompletedRun(false);
+    setCaseHistoryCount(0);
+    setMetricProgress(0);
+    setChartRevision((current) => current + 1);
+    setToastMessage("Lab Environment Purged.");
+    window.dispatchEvent(new CustomEvent("adversim-active-case-cleared"));
+    window.setTimeout(() => setToastMessage(null), 2200);
+  }
 
   const navigateFromTactics = () => {
     router.push(hasCompletedRun ? "/timeline" : "/investigation");
@@ -249,40 +282,48 @@ export default function DashboardPage() {
   }> = [
     {
       label: "Incidents",
-      value: hasCompletedRun ? Math.round(result.summary.incident_count * metricProgress) : 0,
-      helper: hasCompletedRun ? "Suspicious clusters" : "Ready after first run",
+      value: activeCase ? activeCase.key_evidence_event_ids.length : 0,
+      helper: activeCase ? "Correlated clues" : "System idle",
       info: "Incidents are correlated groups of clues. After a run, open Detections to see why each alert fired.",
       icon: ShieldAlert,
-      color: hasCompletedRun ? "text-crimson" : "text-lime"
+      color: activeCase ? "text-crimson" : "text-zinc-500"
     },
     {
       label: "Confidence",
-      value: hasCompletedRun ? `${Math.round(result.summary.confidence * metricProgress)}%` : "Ready",
-      helper: hasCompletedRun ? "Weighted signal score" : "Run a mock incident",
+      value: activeCase ? `${activeCase.confidence}%` : "--",
+      helper: activeCase ? "Weighted signal score" : "Awaiting telemetry",
       info: "Confidence rises when multiple signals agree, like identity, endpoint, file, DLP, and network evidence.",
       icon: Gauge,
-      color: "text-lime"
+      color: activeCase ? "text-lime" : "text-zinc-500"
     },
     {
       label: "Telemetry",
-      value: hasCompletedRun ? Math.round(result.telemetry.length * metricProgress) : 0,
-      helper: hasCompletedRun ? "Synthetic events" : "Generated on replay",
+      value: activeCase ? activeCase.telemetry_events.length : 0,
+      helper: activeCase ? "Synthetic events" : "No active feed",
       info: "Telemetry is the synthetic log stream. It is safe training data shaped like real defender evidence.",
       icon: Activity,
-      color: "text-cobalt"
+      color: activeCase ? "text-cobalt" : "text-zinc-500"
     },
     {
       label: "Timeline",
-      value: hasCompletedRun ? Math.round(result.timeline.length * metricProgress) : 0,
-      helper: hasCompletedRun ? "Reconstructed stages" : "Unlocked after run",
+      value: activeCase ? activeCase.chartData.mappedTactics.filter((count) => count > 0).length : 0,
+      helper: activeCase ? "Mapped stages" : "Not reconstructed",
       info: "Timeline turns scattered logs into the story of what happened, when, and why it matters.",
       icon: Route,
-      color: "text-zinc-200"
+      color: activeCase ? "text-zinc-200" : "text-zinc-500"
     }
   ];
-
   return (
     <div className="space-y-5">
+      {toastMessage ? (
+        <motion.div
+          initial={{ opacity: 0, y: -10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-[18px] border border-line bg-panel/90 px-4 py-3 text-sm font-semibold text-ink shadow-lime backdrop-blur-[20px]"
+        >
+          {toastMessage}
+        </motion.div>
+      ) : null}
       <motion.section
         layoutId="builder-hero"
         className="glass-panel relative overflow-hidden rounded-[32px] p-6 sm:p-8 lg:p-10"
@@ -360,6 +401,14 @@ export default function DashboardPage() {
                   {caseHistoryCount}/5
                 </span>
               </Link>
+              <button
+                type="button"
+                onClick={resetEnvironment}
+                className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] border border-line bg-black/20 px-4 text-sm font-semibold text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-200"
+              >
+                <RefreshCw aria-hidden size={16} />
+                Reset Environment
+              </button>
             </div>
           </div>
 
@@ -481,27 +530,36 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={navigateFromTactics}
-            className="focus-ring block h-72 w-full cursor-pointer rounded-[18px] text-left"
+            className="focus-ring relative block h-72 w-full cursor-pointer rounded-[18px] text-left"
             aria-label={hasCompletedRun ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
-              <ResponsiveContainer key={`tactics-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
+              <ResponsiveContainer key={`tactics-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
                 <BarChart data={tacticData} margin={{ left: 0, right: 10, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 8" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="tactic" tick={{ fontSize: 11, fill: "#a1a1aa" }} interval={0} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
-                  <Tooltip
-                    cursor={{ fill: "rgba(223,255,0,0.05)" }}
-                    contentStyle={{
-                      background: "rgba(26,26,27,0.94)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 16,
-                      color: "#f8fafc"
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#dfff00" radius={[8, 8, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 8" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="tactic" tick={{ fontSize: 11, fill: "#71717a" }} interval={0} />
+                  <YAxis allowDecimals={false} domain={isSystemIdle ? [0, 1] : undefined} tick={{ fontSize: 11, fill: "#52525b" }} />
+                  {!isSystemIdle ? (
+                    <Tooltip
+                      cursor={{ fill: "rgba(223,255,0,0.05)" }}
+                      contentStyle={{
+                        background: "rgba(26,26,27,0.94)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 16,
+                        color: "#f8fafc"
+                      }}
+                    />
+                  ) : null}
+                  <Bar dataKey="count" fill={isSystemIdle ? "#2a2a2a" : "#dfff00"} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+            ) : null}
+            {isSystemIdle ? (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                <span className="technical rounded-full border border-line bg-black/45 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                  [ AWAITING TELEMETRY ]
+                </span>
+              </div>
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
@@ -519,35 +577,44 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={navigateFromSeverity}
-            className="focus-ring block h-72 w-full cursor-pointer rounded-[18px]"
+            className="focus-ring relative block h-72 w-full cursor-pointer rounded-[18px]"
             aria-label={hasCompletedRun ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
-              <ResponsiveContainer key={`severity-${activeCase.case_id}-${chartRevision}`} width="100%" height="100%">
+              <ResponsiveContainer key={`severity-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
                 <PieChart margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
                   <Pie
                     data={severityData}
                     dataKey="count"
                     nameKey="severity"
                     outerRadius={104}
-                    innerRadius={58}
-                    label
+                    innerRadius={isSystemIdle ? 94 : 58}
+                    label={!isSystemIdle}
                     isAnimationActive
                   >
                     {severityData.map((item) => (
-                      <Cell key={item.severity} fill={severityColors[item.severity] ?? "#71717a"} />
+                      <Cell key={item.severity} fill={severityColors[item.severity] ?? "#2a2a2a"} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "rgba(26,26,27,0.94)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 16,
-                      color: "#f8fafc"
-                    }}
-                  />
+                  {!isSystemIdle ? (
+                    <Tooltip
+                      contentStyle={{
+                        background: "rgba(26,26,27,0.94)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 16,
+                        color: "#f8fafc"
+                      }}
+                    />
+                  ) : null}
                 </PieChart>
               </ResponsiveContainer>
+            ) : null}
+            {isSystemIdle ? (
+              <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                <span className="technical rounded-full border border-line bg-black/45 px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                  [ SYSTEM IDLE ]
+                </span>
+              </div>
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
