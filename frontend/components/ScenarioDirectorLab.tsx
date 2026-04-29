@@ -223,7 +223,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               <p className="technical text-xs uppercase tracking-[0.28em] text-lime">Scenario Director</p>
               <h1 className="mt-3 text-3xl font-semibold text-ink sm:text-5xl">Analyzing Synthetic Telemetry...</h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
-                Rolling scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline.
+                Selecting a scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline.
               </p>
             </div>
             <div className="technical rounded-full border border-lime/25 bg-lime/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-lime shadow-lime">
@@ -634,4 +634,5 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     </div>
   );
 }
+
 

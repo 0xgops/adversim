@@ -45,22 +45,24 @@ function confidenceForEvent(caseFile: ScenarioCase, event: EvidenceEvent, index:
   return Math.max(58, Math.min(97, caseFile.confidence + severityBoost[event.severity] - index * 2));
 }
 
-function ensureSentence(value: string) {
-  const trimmed = value.trim();
-  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
-}
-
 function recommendationForEvent(caseFile: ScenarioCase, event: EvidenceEvent) {
   const tactic = tacticForEvent(event);
-  const baseResponse = ensureSentence(
-    caseFile.recommended_response[0] ?? "Review the correlated synthetic telemetry and preserve the evidence chain."
-  );
+  const caseAction = caseFile.recommended_response.find((action) => {
+    const normalized = action.toLowerCase();
 
-  if (tactic === "Credential Access") return `${baseResponse} Validate sign-in context and confirm whether the account activity is expected.`;
-  if (tactic === "Execution") return `${baseResponse} Inspect endpoint lineage and compare the behavior against approved administrative workflows.`;
-  if (tactic === "Privilege Escalation") return `${baseResponse} Audit privileged access changes and confirm authorization with the resource owner.`;
-  if (tactic === "Exfiltration") return `${baseResponse} Review outbound destination, transfer timing, and data exposure scope.`;
-  return `${baseResponse} Correlate the clue with adjacent identity, endpoint, and network signals.`;
+    if (tactic === "Credential Access") return /account|auth|mfa|session|sign-in/.test(normalized);
+    if (tactic === "Execution") return /endpoint|process|host|maintenance/.test(normalized);
+    if (tactic === "Privilege Escalation") return /privileged|admin|group|access/.test(normalized);
+    if (tactic === "Exfiltration") return /egress|outbound|share|transfer|destination|dlp/.test(normalized);
+    return /file|telemetry|evidence|logs/.test(normalized);
+  });
+  const suffix = caseAction ? ` Priority action: ${caseAction}.` : "";
+
+  if (tactic === "Credential Access") return `Validate sign-in context, session history, and MFA posture before escalating the identity finding.${suffix}`;
+  if (tactic === "Execution") return `Inspect endpoint lineage and compare the behavior against approved administrative workflows.${suffix}`;
+  if (tactic === "Privilege Escalation") return `Audit privileged access changes and confirm authorization with the resource owner.${suffix}`;
+  if (tactic === "Exfiltration") return `Review outbound destination, transfer timing, and data exposure scope.${suffix}`;
+  return `Correlate the clue with adjacent identity, endpoint, and network signals.${suffix}`;
 }
 
 function buildDetections(caseFile: ScenarioCase): Detection[] {
@@ -175,4 +177,5 @@ export default function DetectionsPage() {
     </div>
   );
 }
+
 
