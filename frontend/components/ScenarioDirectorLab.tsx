@@ -239,8 +239,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   }, []);
 
   useEffect(() => {
-    publishActiveCase(caseFile);
-  }, [caseFile]);
+    if (!isQuickStart) {
+      return;
+    }
+
+    publishActiveCase(initialCaseState.caseFile);
+  }, [initialCaseState.caseFile, isQuickStart]);
 
   const selectedSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
   const showSeverityBadges = caseFile.difficulty === "Beginner";
@@ -248,12 +252,16 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const keyCount = caseFile.key_evidence_event_ids.length;
   const decoyCount = caseFile.decoy_event_ids.length;
 
-  function loadCase(nextCase: ScenarioCase) {
+  function loadCase(nextCase: ScenarioCase, { commit = false }: { commit?: boolean } = {}) {
     setCaseFile(nextCase);
     setFamily(nextCase.scenario_family);
     setDifficulty(nextCase.difficulty);
     setSelectedEventIds([]);
     setDebrief(null);
+
+    if (commit) {
+      publishActiveCase(nextCase);
+    }
   }
 
   function clearBuildAnimation() {
@@ -268,7 +276,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     }
   }
 
-  function stageCaseWithLoading(nextCase: ScenarioCase) {
+  function stageCaseWithLoading(nextCase: ScenarioCase, { commit = false }: { commit?: boolean } = {}) {
     clearBuildAnimation();
     setSelectedEventIds([]);
     setDebrief(null);
@@ -281,7 +289,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
 
     buildTimeoutRef.current = window.setTimeout(() => {
       clearBuildAnimation();
-      loadCase(nextCase);
+      loadCase(nextCase, { commit });
       setBuildProgress(1);
       setIsBuildingCase(false);
     }, 1500);
@@ -299,7 +307,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     });
 
     setCaseCounter(nextCounter);
-    stageCaseWithLoading(nextCase);
+    stageCaseWithLoading(nextCase, { commit: true });
   }
 
   function rollQuickStartCase() {
@@ -307,7 +315,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     const nextCase = generateQuickStartCase({ caseNumber: nextCounter, difficulty });
 
     setQuickCaseCounter(nextCounter);
-    stageCaseWithLoading(nextCase);
+    stageCaseWithLoading(nextCase, { commit: true });
   }
 
   function toggleEvent(eventId: string) {
@@ -475,7 +483,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 className="focus-ring flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
               >
                 <RefreshCw aria-hidden size={17} />
-                Generate Custom Case
+                Start Custom Investigation
               </button>
             </div>
           </GlassCard>
