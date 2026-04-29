@@ -420,7 +420,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                     <button
                       type="button"
                       onClick={rollQuickStartCase}
-                      className="focus-ring inline-flex h-9 w-[190px] items-center justify-center gap-2 rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
+                      className="focus-ring inline-flex h-9 w-[218px] items-center justify-center gap-2 whitespace-nowrap rounded-[14px] border border-lime/30 bg-lime/10 px-3 text-xs font-bold text-lime shadow-lime transition hover:bg-lime hover:text-obsidian"
                       aria-label="Stage new incident"
                     >
                       <RefreshCw aria-hidden size={14} />
