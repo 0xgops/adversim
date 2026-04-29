@@ -23,6 +23,7 @@ import { PitchWidget } from "@/components/PitchWidget";
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeProvider";
 import { getAiStatus } from "@/lib/api";
 import { clearActiveCaseState, readActiveCase } from "@/lib/active-case";
+import { scenarioFamilies } from "@/lib/scenario-catalog";
 import type { AIStatus } from "@/types/adversim";
 
 const navItems = [
@@ -165,7 +166,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
                 </span>
                 <ClipboardList aria-hidden size={15} className="text-lime" />
                 <span className="technical text-xs uppercase tracking-[0.22em] text-zinc-300">
-                  2 scenarios armed
+                  {scenarioFamilies.length} scenarios armed
                 </span>
               </div>
               <AIStatusPill />

@@ -7,6 +7,19 @@ import type {
   ScenarioRandomness,
   TrainingMode
 } from "@/types/adversim";
+import {
+  scenarioDifficulties,
+  scenarioFamilies,
+  scenarioRandomnessLevels,
+  trainingModes
+} from "@/lib/scenario-catalog";
+
+export {
+  scenarioDifficulties,
+  scenarioFamilies,
+  scenarioRandomnessLevels,
+  trainingModes
+} from "@/lib/scenario-catalog";
 
 type EventTemplate = {
   source: string;
@@ -29,20 +42,6 @@ type ScenarioTemplate = {
   decoyEvents: EventTemplate[];
 };
 
-export const scenarioFamilies: ScenarioFamily[] = [
-  "Credential Compromise",
-  "Insider Data Drift",
-  "Cloud Account Takeover",
-  "Endpoint Activity",
-  "Exfiltration Signal",
-  "Lateral Movement",
-  "Ransomware Precursor"
-];
-
-export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert"];
-export const scenarioRandomnessLevels: ScenarioRandomness[] = ["Low", "Medium", "Chaos Lab"];
-export const trainingModes: TrainingMode[] = ["Guided", "Blind Investigation"];
-
 const users = [
   "finance.admin",
   "lisa.chen@adversim.co",
@@ -53,7 +52,27 @@ const users = [
   "jordan.reed",
   "maya.okafor",
   "ops.service",
-  "casey.nguyen"
+  "casey.nguyen",
+  "devops.lead",
+  "marketing.contractor",
+  "sysadmin.service",
+  "j.smith@adversim.co",
+  "vendor.api.svc",
+  "ceo.exec",
+  "a.rodriguez@adversim.co",
+  "sre.platform",
+  "payroll.clerk",
+  "legal.review",
+  "sales.ops",
+  "iam.sync.svc",
+  "backup.operator",
+  "field.tech",
+  "data.scientist",
+  "n.kim@adversim.co",
+  "contractor.temp7",
+  "helpdesk.tier2",
+  "security.analyst",
+  "svc-build-runner"
 ];
 
 const hosts = [
@@ -66,7 +85,27 @@ const hosts = [
   "CHI-WKS-033",
   "AUS-ENG-118",
   "BOS-SRV-007",
-  "PHX-LAP-062"
+  "PHX-LAP-062",
+  "NYC-SRV-099",
+  "AWS-EC2-PROD",
+  "LON-WKS-212",
+  "AZURE-AD-SYNC",
+  "VDI-GUEST-404",
+  "SFO-MAC-027",
+  "IAD-JUMP-003",
+  "AMS-DB-014",
+  "GCP-GKE-NODE-17",
+  "MIA-CALL-056",
+  "TOR-FIN-APP-02",
+  "SGP-VDI-118",
+  "DEN-BUILD-009",
+  "AWS-LAMBDA-AUTH",
+  "AZURE-FS-021",
+  "LON-SRV-DLP-01",
+  "SEA-SRE-044",
+  "NYC-DC-002",
+  "REMOTE-BYOD-711",
+  "EUC-KIOSK-018"
 ];
 
 const commonDecoyEvents: EventTemplate[] = [
@@ -864,15 +903,7 @@ export function generateScenarioCase({
   };
 }
 
-const quickStartFamilies: ScenarioFamily[] = [
-  "Credential Compromise",
-  "Insider Data Drift",
-  "Cloud Account Takeover",
-  "Endpoint Activity",
-  "Exfiltration Signal",
-  "Lateral Movement",
-  "Ransomware Precursor"
-];
+const quickStartFamilies = scenarioFamilies;
 
 export function generateQuickStartCase({
   seed = `quick:${Date.now()}:${Math.random()}`,
