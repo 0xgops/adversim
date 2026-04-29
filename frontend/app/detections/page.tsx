@@ -1,19 +1,114 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
-import { getLatestSimulation } from "@/lib/api";
-import { simulation as fallbackSimulation } from "@/lib/mock-data";
-import type { SimulationResult } from "@/types/adversim";
+import { generateQuickStartCase } from "@/lib/scenario-director";
+import type { Detection, EvidenceEvent, ScenarioCase } from "@/types/adversim";
+
+function getInitialActiveCase() {
+  return generateQuickStartCase({ seed: "detections-static-preview", caseNumber: 1 });
+}
+
+function parseStoredActiveCase(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as ScenarioCase;
+    return parsed?.telemetry_events?.length ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function tacticForEvent(event: EvidenceEvent) {
+  const tags = new Set(event.tags);
+
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud")) return "Credential Access";
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging")) return "Execution";
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin")) return "Privilege Escalation";
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp")) return "Exfiltration";
+  return "Discovery";
+}
+
+function confidenceForEvent(caseFile: ScenarioCase, event: EvidenceEvent, index: number) {
+  const severityBoost = {
+    Low: -14,
+    Medium: -6,
+    High: 2,
+    Critical: 7
+  } satisfies Record<EvidenceEvent["severity"], number>;
+
+  return Math.max(58, Math.min(97, caseFile.confidence + severityBoost[event.severity] - index * 2));
+}
+
+function recommendationForEvent(caseFile: ScenarioCase, event: EvidenceEvent) {
+  const tactic = tacticForEvent(event);
+  const baseResponse = caseFile.recommended_response[0] ?? "Review the correlated synthetic telemetry and preserve the evidence chain.";
+
+  if (tactic === "Credential Access") return `${baseResponse} Validate sign-in context and confirm whether the account activity is expected.`;
+  if (tactic === "Execution") return `${baseResponse} Inspect endpoint lineage and compare the behavior against approved administrative workflows.`;
+  if (tactic === "Privilege Escalation") return `${baseResponse} Audit privileged access changes and confirm authorization with the resource owner.`;
+  if (tactic === "Exfiltration") return `${baseResponse} Review outbound destination, transfer timing, and data exposure scope.`;
+  return `${baseResponse} Correlate the clue with adjacent identity, endpoint, and network signals.`;
+}
+
+function buildDetections(caseFile: ScenarioCase): Detection[] {
+  return caseFile.telemetry_events
+    .filter((event) => event.is_key_evidence)
+    .map((event, index) => ({
+      id: `det-${caseFile.case_id}-${event.event_id}`,
+      name: event.summary,
+      severity: event.severity,
+      confidence: confidenceForEvent(caseFile, event, index),
+      tactic: tacticForEvent(event),
+      matched_event_ids: [event.event_id],
+      recommendation: recommendationForEvent(caseFile, event)
+    }));
+}
 
 export default function DetectionsPage() {
-  const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
+  const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
 
   useEffect(() => {
-    getLatestSimulation().then(setResult);
+    function applyActiveCase(nextCase: ScenarioCase | null) {
+      if (!nextCase) {
+        return;
+      }
+
+      setActiveCase(nextCase);
+    }
+
+    function receiveActiveCase(event: Event) {
+      applyActiveCase((event as CustomEvent<ScenarioCase>).detail);
+    }
+
+    function receiveStorageCase(event: StorageEvent) {
+      if (event.key !== "adversim-active-case") {
+        return;
+      }
+
+      applyActiveCase(parseStoredActiveCase(event.newValue));
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      applyActiveCase(parseStoredActiveCase(window.localStorage.getItem("adversim-active-case")));
+    });
+
+    window.addEventListener("adversim-active-case", receiveActiveCase);
+    window.addEventListener("storage", receiveStorageCase);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("adversim-active-case", receiveActiveCase);
+      window.removeEventListener("storage", receiveStorageCase);
+    };
   }, []);
+
+  const detections = useMemo(() => buildDetections(activeCase), [activeCase]);
 
   return (
     <div className="space-y-5">
@@ -23,12 +118,12 @@ export default function DetectionsPage() {
           Suspicious Activity Findings
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-          Placeholder analytics correlate synthetic telemetry into analyst-friendly findings and response guidance.
+          Active case analytics correlate the staged {activeCase.scenario_family.toLowerCase()} telemetry into analyst-friendly findings and response guidance.
         </p>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
-        {result.detections.map((detection, index) => (
+        {detections.map((detection, index) => (
           <motion.article
             key={detection.id}
             initial={{ opacity: 0, y: 14 }}
