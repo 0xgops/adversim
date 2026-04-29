@@ -9,6 +9,7 @@ import {
   Compass,
   Gauge,
   GraduationCap,
+  History,
   Play,
   Radar,
   Route,
@@ -30,6 +31,7 @@ import {
   YAxis
 } from "recharts";
 import { getLatestSimulation } from "@/lib/api";
+import { readCaseHistory } from "@/lib/case-history";
 import { simulation as fallbackSimulation } from "@/lib/mock-data";
 import { generateQuickStartCase } from "@/lib/scenario-director";
 import type { ScenarioCase, SimulationResult } from "@/types/adversim";
@@ -91,6 +93,7 @@ export default function DashboardPage() {
   const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
   const [activeCase, setActiveCase] = useState<ScenarioCase>(getInitialActiveCase);
   const [chartRevision, setChartRevision] = useState(0);
+  const [caseHistoryCount, setCaseHistoryCount] = useState(() => readCaseHistory().length);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => setChartsReady(true));
@@ -136,6 +139,27 @@ export default function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    function syncCaseHistory() {
+      setCaseHistoryCount(readCaseHistory().length);
+    }
+
+    function syncStorageHistory(event: StorageEvent) {
+      if (event.key === "adversim-case-history") {
+        syncCaseHistory();
+      }
+    }
+
+    const frame = window.requestAnimationFrame(syncCaseHistory);
+    window.addEventListener("adversim-case-history", syncCaseHistory);
+    window.addEventListener("storage", syncStorageHistory);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("adversim-case-history", syncCaseHistory);
+      window.removeEventListener("storage", syncStorageHistory);
+    };
+  }, []);
   useEffect(() => {
     function closeMetricInfo() {
       setActiveMetricInfo(null);
@@ -297,6 +321,17 @@ export default function DashboardPage() {
               >
                 <Radar aria-hidden size={18} />
                 Custom Lab Builder
+              </Link>
+              <Link
+                href="/director"
+                aria-label={`Open case history, ${caseHistoryCount} saved investigations`}
+                className="focus-ring inline-flex h-12 items-center gap-2 rounded-[18px] border border-line bg-black/30 px-4 text-sm font-semibold text-ink transition hover:border-lime/40 hover:text-lime"
+              >
+                <History aria-hidden size={18} />
+                Case History
+                <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-0.5 text-[10px] text-lime">
+                  {caseHistoryCount}/5
+                </span>
               </Link>
             </div>
           </div>

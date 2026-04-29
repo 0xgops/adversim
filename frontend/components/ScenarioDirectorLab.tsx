@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   BrainCircuit,
   CheckCircle2,
@@ -593,20 +593,28 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                     <p className="mt-3 text-sm leading-6 text-zinc-400">
                       {trainingMode === "Guided" || debrief ? event.plain_english : "Blind investigation: submit your finding to reveal the plain-English mentor hint."}
                     </p>
-                    {expertMode ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {event.source_ref ? (
-                          <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-lime">
-                            Source: {event.source_ref}
-                          </span>
-                        ) : null}
-                        {event.tags.map((tag) => (
-                          <span key={tag} className="technical rounded-full border border-line bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
+                    <AnimatePresence initial={false}>
+                      {expertMode ? (
+                        <motion.div
+                          className="mt-4 flex flex-wrap gap-2"
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -6 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                        >
+                          {event.source_ref ? (
+                            <span className="technical rounded-full border border-lime/25 bg-lime/10 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-lime">
+                              Source: {event.source_ref}
+                            </span>
+                          ) : null}
+                          {event.tags.map((tag) => (
+                            <span key={tag} className="technical rounded-full border border-line bg-black/30 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+                              {tag}
+                            </span>
+                          ))}
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
                   </motion.button>
                 );
               })}
