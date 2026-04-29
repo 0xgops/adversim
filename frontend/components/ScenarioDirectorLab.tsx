@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   BrainCircuit,
@@ -121,6 +121,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const [debrief, setDebrief] = useState<CaseDebrief | null>(null);
   const [isBuildingCase, setIsBuildingCase] = useState(quickStart);
   const [buildProgress, setBuildProgress] = useState(quickStart ? 0 : 1);
+  const buildIntervalRef = useRef<number | null>(null);
+  const buildTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!quickStart) {
@@ -144,6 +146,18 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   }, [quickStart]);
 
   useEffect(() => {
+    return () => {
+      if (buildIntervalRef.current !== null) {
+        window.clearInterval(buildIntervalRef.current);
+      }
+
+      if (buildTimeoutRef.current !== null) {
+        window.clearTimeout(buildTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     publishActiveCase(caseFile);
   }, [caseFile]);
 
@@ -159,39 +173,58 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     setDebrief(null);
   }
 
-  function generateNewCase() {
-    const nextCounter = caseCounter + 1;
-    setCaseCounter(nextCounter);
-    loadCase(
-      generateScenarioCase({
-        family,
-        difficulty,
-        randomness,
-        trainingMode,
-        seed: `${Date.now()}:${Math.random()}`,
-        caseNumber: nextCounter
-      })
-    );
+  function clearBuildAnimation() {
+    if (buildIntervalRef.current !== null) {
+      window.clearInterval(buildIntervalRef.current);
+      buildIntervalRef.current = null;
+    }
+
+    if (buildTimeoutRef.current !== null) {
+      window.clearTimeout(buildTimeoutRef.current);
+      buildTimeoutRef.current = null;
+    }
   }
 
-  function rollQuickStartCase() {
-    const nextCounter = quickCaseCounter + 1;
-    setQuickCaseCounter(nextCounter);
+  function stageCaseWithLoading(nextCase: ScenarioCase) {
+    clearBuildAnimation();
     setSelectedEventIds([]);
     setDebrief(null);
     setBuildProgress(0);
     setIsBuildingCase(true);
-    setCaseFile(generateQuickStartCase({ caseNumber: nextCounter }));
 
-    const progressTimer = window.setInterval(() => {
+    buildIntervalRef.current = window.setInterval(() => {
       setBuildProgress((current) => Math.min(1, current + 0.08));
     }, 90);
 
-    window.setTimeout(() => {
-      window.clearInterval(progressTimer);
+    buildTimeoutRef.current = window.setTimeout(() => {
+      clearBuildAnimation();
+      loadCase(nextCase);
       setBuildProgress(1);
       setIsBuildingCase(false);
     }, 1500);
+  }
+
+  function generateNewCase() {
+    const nextCounter = caseCounter + 1;
+    const nextCase = generateScenarioCase({
+      family,
+      difficulty,
+      randomness,
+      trainingMode,
+      seed: `${Date.now()}:${Math.random()}`,
+      caseNumber: nextCounter
+    });
+
+    setCaseCounter(nextCounter);
+    stageCaseWithLoading(nextCase);
+  }
+
+  function rollQuickStartCase() {
+    const nextCounter = quickCaseCounter + 1;
+    const nextCase = generateQuickStartCase({ caseNumber: nextCounter });
+
+    setQuickCaseCounter(nextCounter);
+    stageCaseWithLoading(nextCase);
   }
 
   function toggleEvent(eventId: string) {
@@ -208,8 +241,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     setDebrief(gradeEvidenceSelection(caseFile, selectedEventIds));
   }
 
-  if (isQuickStart && isBuildingCase) {
+  if (isBuildingCase) {
     const progressPercent = Math.round(buildProgress * 100);
+    const loadingTitle = isQuickStart ? "Analyzing Synthetic Telemetry..." : "Building Custom Investigation...";
+    const loadingDescription = isQuickStart
+      ? "Selecting a scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline."
+      : `Applying ${family}, ${difficulty}, ${randomness}, and ${trainingMode} settings before the evidence board refreshes.`;
 
     return (
       <div className="grid min-h-[58vh] place-items-center">
@@ -220,11 +257,9 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="technical text-xs uppercase tracking-[0.28em] text-lime">Scenario Director</p>
-              <h1 className="mt-3 text-3xl font-semibold text-ink sm:text-5xl">Analyzing Synthetic Telemetry...</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
-                Selecting a scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline.
-              </p>
+              <p className="technical text-xs uppercase tracking-[0.28em] text-lime">{isQuickStart ? "Scenario Director" : "Custom Lab Builder"}</p>
+              <h1 className="mt-3 text-3xl font-semibold text-ink sm:text-5xl">{loadingTitle}</h1>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">{loadingDescription}</p>
             </div>
             <div className="technical rounded-full border border-lime/25 bg-lime/10 px-4 py-2 text-xs uppercase tracking-[0.18em] text-lime shadow-lime">
               {progressPercent}%
@@ -634,5 +669,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     </div>
   );
 }
+
+
 
 
