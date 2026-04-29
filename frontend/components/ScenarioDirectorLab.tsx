@@ -670,6 +670,3 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   );
 }
 
-
-
-
