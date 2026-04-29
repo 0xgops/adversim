@@ -21,6 +21,7 @@ import type { ReactNode } from "react";
 import { GuideWidget } from "@/components/GuideWidget";
 import { PitchWidget } from "@/components/PitchWidget";
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeProvider";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { getAiStatus } from "@/lib/api";
 import { clearActiveCaseState, readActiveCase } from "@/lib/active-case";
 import { scenarioFamilies } from "@/lib/scenario-catalog";
@@ -89,7 +90,7 @@ function AIStatusPill() {
 function AppShellContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
-  const { isSocView, setIsSocView } = useViewMode();
+  const { isSocView } = useViewMode();
 
   function closeActiveInvestigation() {
     clearActiveCaseState();
@@ -141,24 +142,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
             </Link>
 
             <div className="flex items-center gap-3">
-              <div className="glass-panel hidden items-center rounded-full p-1 sm:flex">
-                {[
-                  ["Beginner", false],
-                  ["SOC", true]
-                ].map(([label, enabled]) => (
-                  <button
-                    key={label as string}
-                    type="button"
-                    onClick={() => setIsSocView(Boolean(enabled))}
-                    className={`focus-ring technical h-8 rounded-full px-3 text-[10px] uppercase tracking-[0.16em] transition ${
-                      isSocView === Boolean(enabled) ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
-                    }`}
-                    aria-pressed={isSocView === Boolean(enabled)}
-                  >
-                    {label as string}
-                  </button>
-                ))}
-              </div>
+              <ViewModeToggle className="hidden sm:inline-flex" />
               <div className="glass-panel hidden items-center gap-3 rounded-full px-4 py-2 md:flex">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-40" />

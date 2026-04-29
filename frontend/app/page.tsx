@@ -32,6 +32,7 @@ import {
   YAxis
 } from "recharts";
 import { useViewMode } from "@/components/ViewModeProvider";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { getLatestSimulation } from "@/lib/api";
 import { clearActiveCaseState } from "@/lib/active-case";
 import { clearCaseHistory, readCaseHistory } from "@/lib/case-history";
@@ -105,7 +106,7 @@ export default function DashboardPage() {
   const [metricProgress, setMetricProgress] = useState(0);
   const [hasCompletedRun, setHasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
-  const { isSocView, setIsSocView } = useViewMode();
+  const { isSocView } = useViewMode();
   const audienceMode = isSocView ? "soc" : "beginner";
   const [activeCase, setActiveCase] = useState<ScenarioCase | null>(getInitialDashboardCase);
   const [chartRevision, setChartRevision] = useState(0);
@@ -346,23 +347,7 @@ export default function DashboardPage() {
             <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-400">
               Learn cyber defense by investigating safe synthetic incidents. AI creates the case, you follow the clues, then AdverSim turns the evidence into detections, a timeline, and a report.
             </p>
-            <div className="mt-5 inline-flex rounded-full border border-line bg-black/25 p-1">
-              {[
-                ["beginner", "Beginner View"],
-                ["soc", "SOC View"]
-              ].map(([mode, label]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setIsSocView(mode === "soc")}
-                  className={`focus-ring rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    audienceMode === mode ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <ViewModeToggle className="mt-5" labels={{ beginner: "Beginner View", soc: "SOC View" }} />
             {!isSocView ? (
             <div className="mt-5 max-w-2xl rounded-[22px] border border-lime/20 bg-lime/[0.06] p-4">
               <div className="flex items-center gap-2 text-lime">

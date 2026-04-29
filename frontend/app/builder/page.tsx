@@ -26,6 +26,9 @@ import {
 import { askAiAnalyst, generateAiReport, getAiStatus, getScenarios, runSimulation } from "@/lib/api";
 import { scenarios as fallbackScenarios, simulation as fallbackSimulation } from "@/lib/mock-data";
 import Link from "next/link";
+import { useViewMode } from "@/components/ViewModeProvider";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { scenarioFamilies } from "@/lib/scenario-catalog";
 import type { AIResponse, AIStatus, Scenario, SimulationRequest, SimulationResult, TelemetryEvent } from "@/types/adversim";
 import type { LucideIcon } from "lucide-react";
 
@@ -789,7 +792,8 @@ export default function BuilderPage() {
   const [aiRemainingCalls, setAiRemainingCalls] = useState(0);
   const [aiStatusMessage, setAiStatusMessage] = useState("Checking AI readiness...");
   const [aiStatusMode, setAiStatusMode] = useState<AIStatus["mode"]>("fallback-ready");
-  const [audienceMode, setAudienceMode] = useState<"beginner" | "soc">("beginner");
+  const { isSocView } = useViewMode();
+  const audienceMode = isSocView ? "soc" : "beginner";
   const [showMissionBanner, setShowMissionBanner] = useState(getInitialMissionBanner);
   const [showCompletionCard, setShowCompletionCard] = useState(false);
   const [autoDebrief, setAutoDebrief] = useState<AIResponse | null>(null);
@@ -816,11 +820,6 @@ export default function BuilderPage() {
   const chainStages = scenarioConfig.stages;
   const selectableScenarios = scenarios.filter((scenario) =>
     ["credential-compromise-chain", "insider-data-drift"].includes(scenario.id)
-  );
-
-  const readyScenarioCount = useMemo(
-    () => scenarios.filter((scenario) => scenario.status.toLowerCase().includes("ready")).length,
-    [scenarios]
   );
 
   async function handleRun() {
@@ -988,7 +987,7 @@ export default function BuilderPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isSocView ? "soc-dense-stack" : ""}`}>
       {showMissionBanner ? (
         <motion.section
           initial={{ opacity: 0, y: -10, scale: 0.98 }}
@@ -1114,23 +1113,7 @@ export default function BuilderPage() {
               <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
                 {scenarioConfig.subtitle}
               </p>
-              <div className="mt-4 inline-flex rounded-full border border-line bg-black/25 p-1">
-                {[
-                  ["beginner", "Beginner"],
-                  ["soc", "SOC"]
-                ].map(([mode, label]) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setAudienceMode(mode as "beginner" | "soc")}
-                    className={`focus-ring rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                      audienceMode === mode ? "bg-lime text-obsidian shadow-lime" : "text-zinc-400 hover:text-ink"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <ViewModeToggle className="mt-4" />
               <div className="mt-3 flex max-w-2xl gap-3 rounded-[18px] border border-line bg-black/25 p-3">
                 {audienceMode === "beginner" ? (
                   <GraduationCap aria-hidden size={18} className="mt-0.5 shrink-0 text-lime" />
@@ -1145,7 +1128,7 @@ export default function BuilderPage() {
               </div>
             </div>
             <div className="technical rounded-full border border-line bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-zinc-300">
-              {readyScenarioCount} live scenarios
+              {scenarioFamilies.length} live scenarios
             </div>
           </div>
 

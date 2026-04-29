@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { useViewMode } from "@/components/ViewModeProvider";
+import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { readCaseHistory, recordCaseHistory } from "@/lib/case-history";
 import {
   generateDailyThreatQueue,
@@ -403,8 +404,11 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
             </p>
           </div>
 
-          <div className="rounded-[24px] border border-line bg-black/30 p-5">
-            <p className="technical text-xs uppercase tracking-[0.24em] text-zinc-500">Training loop</p>
+          <div className={`rounded-[24px] border border-line bg-black/30 ${isSocView ? "p-4" : "p-5"}`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="technical text-xs uppercase tracking-[0.24em] text-zinc-500">Training loop</p>
+              <ViewModeToggle />
+            </div>
             <div className="mt-4 space-y-3">
               {["Generate Case", "Select Evidence", "Submit Finding", "Read AI-style Debrief"].map((step, index) => (
                 <div key={step} className="flex items-center gap-3 rounded-[16px] border border-line bg-white/[0.035] px-3 py-3">
