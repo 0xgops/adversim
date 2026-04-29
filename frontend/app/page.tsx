@@ -127,13 +127,24 @@ export default function DashboardPage() {
       applyActiveCase((event as CustomEvent<ScenarioCase>).detail);
     }
 
+    function clearActiveInvestigation() {
+      setHasActiveInvestigation(false);
+      setActiveCase(getInitialActiveCase());
+      setChartRevision((current) => current + 1);
+    }
+
     function receiveStorageCase(event: StorageEvent) {
       if (event.key !== "adversim-active-case") {
         return;
       }
 
       const storedCase = parseStoredActiveCase(event.newValue);
-      setHasActiveInvestigation(Boolean(storedCase));
+      if (!storedCase) {
+        clearActiveInvestigation();
+        return;
+      }
+
+      setHasActiveInvestigation(true);
       applyActiveCase(storedCase);
     }
 
@@ -144,11 +155,13 @@ export default function DashboardPage() {
     });
 
     window.addEventListener("adversim-active-case", receiveActiveCase);
+    window.addEventListener("adversim-active-case-cleared", clearActiveInvestigation);
     window.addEventListener("storage", receiveStorageCase);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("adversim-active-case", receiveActiveCase);
+      window.removeEventListener("adversim-active-case-cleared", clearActiveInvestigation);
       window.removeEventListener("storage", receiveStorageCase);
     };
   }, []);

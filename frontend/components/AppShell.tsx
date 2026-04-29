@@ -10,7 +10,8 @@ import {
   Play,
   Radar,
   Route,
-  ShieldCheck
+  ShieldCheck,
+  X
 } from "lucide-react";
 import { LayoutGroup, motion } from "framer-motion";
 import Link from "next/link";
@@ -91,6 +92,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
 
+  function closeActiveInvestigation() {
+    window.localStorage.removeItem("adversim-active-case");
+    setHasActiveInvestigation(false);
+    window.dispatchEvent(new CustomEvent("adversim-active-case-cleared"));
+  }
+
   useEffect(() => {
     function syncActiveInvestigation() {
       setHasActiveInvestigation(hasStoredActiveInvestigation());
@@ -104,11 +111,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     const frame = window.requestAnimationFrame(syncActiveInvestigation);
     window.addEventListener("adversim-active-case", syncActiveInvestigation);
+    window.addEventListener("adversim-active-case-cleared", syncActiveInvestigation);
     window.addEventListener("storage", syncStorage);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("adversim-active-case", syncActiveInvestigation);
+      window.removeEventListener("adversim-active-case-cleared", syncActiveInvestigation);
       window.removeEventListener("storage", syncStorage);
     };
   }, []);
@@ -163,13 +172,24 @@ export function AppShell({ children }: { children: ReactNode }) {
         </footer>
 
         {hasActiveInvestigation && pathname !== "/investigation" ? (
-          <Link
-            href="/investigation"
-            className="focus-ring fixed bottom-[92px] left-1/2 z-40 inline-flex h-11 -translate-x-1/2 items-center gap-2 rounded-[18px] border border-lime/30 bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
-          >
-            <Play aria-hidden size={16} />
-            Resume Investigation
-          </Link>
+          <div className="fixed bottom-[92px] left-1/2 z-40 flex h-11 -translate-x-1/2 overflow-hidden rounded-[18px] border border-lime/30 bg-lime text-obsidian shadow-lime">
+            <Link
+              href="/investigation"
+              className="focus-ring inline-flex items-center gap-2 px-4 text-sm font-bold transition hover:brightness-110"
+            >
+              <Play aria-hidden size={16} />
+              Resume Investigation
+            </Link>
+            <button
+              type="button"
+              onClick={closeActiveInvestigation}
+              className="focus-ring grid w-10 place-items-center border-l border-obsidian/20 text-obsidian/70 transition hover:bg-obsidian/10 hover:text-obsidian"
+              aria-label="Close active investigation"
+              title="Close active investigation"
+            >
+              <X aria-hidden size={15} />
+            </button>
+          </div>
         ) : null}
 
         <nav className="fixed bottom-5 left-1/2 z-40 w-[min(calc(100%-24px),900px)] -translate-x-1/2">
