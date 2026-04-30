@@ -19,7 +19,7 @@ const routeTips: Record<string, string[]> = {
   ],
   "/investigation": [
     "You are already in the 60-second investigation path.",
-    "Read the Investigation Prompt first, then select the evidence cards that support the case.",
+    "Read the Mission Briefing first, then select the evidence cards that support the case.",
     "Submit your finding to see what you caught, what you missed, and how to prevent it next time."
   ],
   "/builder": [

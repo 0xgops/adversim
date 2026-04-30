@@ -45,7 +45,7 @@ Scenario Family: ${caseFile.scenario_family}
 Severity: ${caseFile.severity}
 Confidence: ${caseFile.confidence}%
 
-## Investigation Prompt
+## Mission Briefing
 ${caseFile.case_briefing}
 
 ## Affected Entity

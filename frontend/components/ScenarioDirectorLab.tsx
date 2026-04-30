@@ -100,7 +100,10 @@ function eventCardTone(event: EvidenceEvent, selected: boolean, debrief: CaseDeb
   return "border-line bg-black/20 opacity-75";
 }
 
-function missionRulesForDifficulty(difficulty: ScenarioDifficulty, trainingMode: TrainingMode) {
+const MISSION_BRIEFING_COPY =
+  "Filter high-fidelity signals from baseline background noise to reconstruct the attack timeline and identify the adversary's objective.";
+
+function operationalGuidanceForDifficulty(difficulty: ScenarioDifficulty, trainingMode: TrainingMode) {
   if (difficulty === "Expert") {
     return "No hints provided. Severity and source tags are hidden. Trust your training and use the Dashboard Incident Heat chart to prioritize evidence.";
   }
@@ -560,8 +563,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
                   {isQuickStart ? "60-second investigation" : "Custom Lab Builder"}
                 </p>
-                <h1 className={`${isSocView ? "mt-1 text-2xl sm:text-3xl" : "mt-2 text-3xl sm:text-4xl"} font-semibold text-ink`}>Investigation Prompt</h1>
-                <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-base leading-7"} text-zinc-200`}>{caseFile.case_briefing}</p>
+                <h1 className={`${isSocView ? "mt-1 text-2xl sm:text-3xl" : "mt-2 text-3xl sm:text-4xl"} font-semibold text-ink`}>Mission Briefing</h1>
+                <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-base leading-7"} text-zinc-200`}>{MISSION_BRIEFING_COPY}</p>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <span className="technical rounded-full border border-line bg-black/25 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
                     {caseFile.case_id}
@@ -633,10 +636,10 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
             <div className={`soc-compact-card rounded-[18px] border border-line bg-white/[0.035] ${isSocView ? "mt-3 p-3" : "mt-5 p-4"}`}>
               <div className="flex items-center gap-2 text-lime">
                 <Eye aria-hidden size={16} />
-                <p className="technical text-xs uppercase tracking-[0.22em]">Mission rules</p>
+                <p className="technical text-xs uppercase tracking-[0.22em]">Operational guidance</p>
               </div>
               <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-2 text-sm leading-6"} text-zinc-300`}>
-                {missionRulesForDifficulty(caseFile.difficulty, trainingMode)}
+                {operationalGuidanceForDifficulty(caseFile.difficulty, trainingMode)}
               </p>
             </div>
           </GlassCard>

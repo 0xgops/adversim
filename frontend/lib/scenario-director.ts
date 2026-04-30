@@ -152,7 +152,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
     titles: ["Credential Compromise Chain", "Privileged Login Anomaly", "Authentication Pressure Case"],
     briefings: [
       "A suspicious authentication pattern has been detected involving a privileged account. Decide whether this is normal behavior or a likely compromise chain.",
-      "Several identity and endpoint signals landed close together. Your task is to separate meaningful clues from normal background activity."
+      "Several identity and endpoint signals landed close together. Objective: separate meaningful clues from normal background activity."
     ],
     attackerProfiles: ["Opportunistic identity-focused actor", "Credential misuse emulator", "Lab-only adversary persona"],
     expectedFindings: [
