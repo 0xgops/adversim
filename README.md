@@ -111,7 +111,7 @@ NEXT_PUBLIC_API_URL=https://your-backend-domain.onrender.com
 
 ## Simulation Flow
 
-The lab has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The current environment includes nineteen ready scenario packages:
+The lab has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The current environment includes twenty-two ready scenario packages:
 
 - Credential Compromise Chain
 - Insider Data Drift
@@ -132,13 +132,16 @@ The lab has two layers: Scenario Director for interactive investigation practice
 - Identity: Session Hijack
 - Stealth: Resource Exhaustion
 - Recon: Password Spraying
+- BEC: Financial Diversion
+- SQLi: Customer Data Harvest
+- Shadow IT: Rogue Access Point
 
 Each scenario package supports adjustable difficulty and noise controls:
 
 - Beginner, Intermediate, and Expert investigation modes
 - Low, Medium, and Chaos Lab background-noise injection
 
-That creates high-replay lab runs across the nineteen scenario packages. Duration controls pacing, not the incident type.
+That creates high-replay lab runs across the twenty-two scenario packages. Duration controls pacing, not the incident type.
 
 ## Scenario Package Model
 

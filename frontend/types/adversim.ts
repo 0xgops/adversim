@@ -114,7 +114,10 @@ export type ScenarioFamily =
   | "Supply Chain: Poisoned Update"
   | "Identity: Session Hijack"
   | "Stealth: Resource Exhaustion"
-  | "Recon: Password Spraying";
+  | "Recon: Password Spraying"
+  | "BEC: Financial Diversion"
+  | "SQLi: Customer Data Harvest"
+  | "Shadow IT: Rogue Access Point";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";

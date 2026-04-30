@@ -926,7 +926,7 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
       },
       {
         source: "Network",
-        summary: "Outbound connection from {host} to 194.26.135.8 matched command-channel style telemetry",
+        summary: "Outbound connection from {host} to reserved lab IP 203.0.113.88 matched command-channel style telemetry",
         plain_english: "The host contacted an external IP after suspicious endpoint activity, increasing incident confidence.",
         severity: "Critical",
         tags: ["network", "egress", "c2", "exfiltration"],
@@ -1023,7 +1023,7 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
       },
       {
         source: "Network",
-        summary: "1.2GB outbound data transfer from {host} to 103.22.11.9 exceeded baseline",
+        summary: "1.2GB outbound data transfer from {host} to reserved lab IP 203.0.113.109 exceeded baseline",
         plain_english: "A large outbound transfer occurred after sensitive-path discovery.",
         severity: "Critical",
         tags: ["network", "egress", "exfiltration", "api"],
@@ -1738,6 +1738,264 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
         contextualize: false
       }
     ]
+  },
+  "BEC: Financial Diversion": {
+    family: "BEC: Financial Diversion",
+    titles: ["BEC: Financial Diversion", "Wire Transfer Mailbox Review", "Finance Mail Rule Investigation"],
+    missionBriefings: [
+      "The finance department reported an urgent email from the CFO requesting an immediate change to a vendor's banking details. The message appeared legitimate, but the link directed the user to a look-alike login portal. Confirm whether credentials were harvested and whether unauthorized mailbox rules were established to hide follow-up messages.",
+      "Trace a Business Email Compromise attempt involving a fraudulent wire transfer request. Correlate inbound mail, unusual authentication, and mailbox rule creation."
+    ],
+    operationalGuidance: [
+      "Correlate the inbound mail signal with unusual auth success from a new location. Check identity and mail logs for forwarding or deletion rules created immediately after login."
+    ],
+    targetUsers: ["f-miller"],
+    targetHosts: ["NYC-FIN-WKST-05"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic BEC training persona", "Financial diversion emulator", "Lab-only mailbox fraud actor"],
+    expectedFindings: [
+      "Spearphishing link reached the finance user",
+      "The target account authenticated from an unusual lab source",
+      "Mailbox rule was created to hide wire-transfer related messages"
+    ],
+    recommendedResponse: [
+      "Reset the affected account and revoke active mail sessions",
+      "Remove unauthorized mailbox rules and preserve mail audit logs",
+      "Validate vendor banking changes through an out-of-band business process",
+      "Search for related messages sent to finance distribution lists"
+    ],
+    preventionLessons: [
+      "Alert on suspicious links sent to finance users",
+      "Monitor mailbox rule creation after unusual authentication",
+      "Require out-of-band verification for banking detail changes"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "Spearphishing link detected in email from cfo@corp-office.test",
+        plain_english: "The finance user received a message that looked executive-driven but pointed to a look-alike login flow.",
+        severity: "Medium",
+        tags: ["email", "phishing", "bec", "credential-access"],
+        source_ref: "MITRE T1566.002",
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "Account f-miller authenticated from reserved lab IP 198.51.100.77 after the mail signal",
+        plain_english: "The account successfully logged in from a source that does not match the normal finance workstation pattern.",
+        severity: "High",
+        tags: ["identity", "initial-access", "cloud", "bec"],
+        source_ref: "MITRE T1078",
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "New mailbox rule created to delete messages containing Wire or Transfer",
+        plain_english: "A mail rule was created to hide future financial-transfer messages from the user.",
+        severity: "Critical",
+        tags: ["mail", "mail-rule", "exfiltration", "post-login"],
+        source_ref: "MITRE T1114.003",
+        contextualize: false
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "d-ross successful login to NYC-FIN-WKST-01",
+        plain_english: "Another finance user's normal login is not part of this mailbox investigation.",
+        severity: "Low",
+        tags: ["decoy", "identity", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "DNS query for portal.office.com completed successfully",
+        plain_english: "Routine productivity suite DNS resolution is expected business traffic.",
+        severity: "Low",
+        tags: ["decoy", "dns", "mail"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Document Q1_Report.pdf sent to Finance-Printer-01",
+        plain_english: "A normal print job is unrelated to the suspicious mail rule sequence.",
+        severity: "Low",
+        tags: ["decoy", "printer", "finance"],
+        contextualize: false
+      }
+    ]
+  },
+  "SQLi: Customer Data Harvest": {
+    family: "SQLi: Customer Data Harvest",
+    titles: ["SQLi: Customer Data Harvest", "Public Portal Data Harvest", "Blind SQLi Exposure Review"],
+    missionBriefings: [
+      "Web application firewalls flagged high-frequency HTTP POST requests to the /api/v2/search endpoint containing unusual character sequences. Database logs show a spike in reads from customer profile tables that do not match standard application queries. Identify the injection point and estimate the exposed data volume.",
+      "Neutralize a blind SQL injection attack targeting the customer-facing web portal. Correlate malformed requests, database read spikes, and outbound transfer telemetry."
+    ],
+    operationalGuidance: [
+      "Look for malformed request signals in network logs followed by database read pulses in cloud or backend telemetry. High-latency responses can indicate timing-test behavior in this synthetic case."
+    ],
+    targetUsers: ["web-portal-svc"],
+    targetHosts: ["CANTON-WEB-PROD-02"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic web-app abuse emulator", "Public portal data-harvest persona", "Lab-only SQL injection training actor"],
+    expectedFindings: [
+      "Malformed POST parameter telemetry targeted the search endpoint",
+      "Database read volume spiked against customer profile data",
+      "Outbound HTTPS transfer followed the database read pulse"
+    ],
+    recommendedResponse: [
+      "Enable containment for the affected web route according to procedure",
+      "Preserve WAF, application, database, and network telemetry",
+      "Review parameter handling and query patterns with the application owner",
+      "Perform data exposure assessment for the affected customer records"
+    ],
+    preventionLessons: [
+      "Alert on malformed request bursts against sensitive API routes",
+      "Baseline database read volume per application endpoint",
+      "Correlate WAF events with backend data-access spikes"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "SQL injection-style syntax detected in POST parameter query; payload sanitized for safety",
+        plain_english: "The web portal received malformed input patterns associated with public application exploitation.",
+        severity: "High",
+        tags: ["network", "api", "sqli", "application"],
+        source_ref: "MITRE T1190",
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "15,000+ records read from customer_profiles table in 60 seconds",
+        plain_english: "The database read volume sharply exceeded normal application behavior.",
+        severity: "Critical",
+        tags: ["cloud", "db-read", "collection", "exfiltration"],
+        source_ref: "MITRE T1530",
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Outbound HTTPS burst: 250MB from CANTON-WEB-PROD-02 to reserved lab IP 203.0.113.91",
+        plain_english: "A large outbound transfer occurred after the suspicious database read spike.",
+        severity: "Critical",
+        tags: ["network", "egress", "exfiltration", "api"],
+        source_ref: "MITRE T1041",
+        contextualize: false
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Network",
+        summary: "Load balancer health check successful for CANTON-WEB-PROD-02",
+        plain_english: "Health checks are normal availability monitoring.",
+        severity: "Low",
+        tags: ["decoy", "monitoring", "network"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "200 OK response for valid user login at /api/v2/login",
+        plain_english: "A normal login response does not support the SQL injection narrative.",
+        severity: "Low",
+        tags: ["decoy", "api", "application"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Nginx access logs rotated successfully",
+        plain_english: "Log rotation is expected web-server maintenance.",
+        severity: "Low",
+        tags: ["decoy", "logging", "endpoint"],
+        contextualize: false
+      }
+    ]
+  },
+  "Shadow IT: Rogue Access Point": {
+    family: "Shadow IT: Rogue Access Point",
+    titles: ["Shadow IT: Rogue Access Point", "Rogue Wireless Investigation", "Guest VLAN Intercept Review"],
+    missionBriefings: [
+      "A security sweep identified a new wireless SSID named Corporate_Backup_WiFi that is not managed by IT. Several employee devices automatically connected to it. Telemetry suggests this Shadow IT device is intercepting traffic and performing basic protocol analysis. Isolate the device and identify which internal systems it attempted to probe.",
+      "Locate a rogue wireless access point discovered on the corporate guest network. Correlate unauthorized device telemetry, network sniffing alerts, and internal discovery attempts."
+    ],
+    operationalGuidance: [
+      "This is an ad-hoc discovery task. Focus on the unauthorized device signal and correlate it with network sniffing alerts from the internal gateway."
+    ],
+    targetUsers: ["guest-wifi-01"],
+    targetHosts: ["NYC-HQ-AP-14"],
+    defaultDifficulty: "Beginner",
+    attackerProfiles: ["Synthetic rogue-access-point emulator", "Wireless inspection training persona", "Lab-only adversary-in-the-middle actor"],
+    expectedFindings: [
+      "Unauthorized wireless device appeared on the guest VLAN",
+      "ARP poisoning or adversary-in-the-middle telemetry appeared on the subnet",
+      "Rogue access point probed an internal file server"
+    ],
+    recommendedResponse: [
+      "Physically locate and remove the unauthorized access point",
+      "Rotate credentials for devices that connected to the rogue SSID",
+      "Block the rogue MAC address and review guest VLAN segmentation",
+      "Preserve WIDS, DHCP, gateway, and endpoint telemetry"
+    ],
+    preventionLessons: [
+      "Continuously inventory wireless SSIDs and MAC addresses",
+      "Alert on SSID impersonation and ARP poisoning",
+      "Segment guest wireless traffic from internal services"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "New MAC address detected on Guest VLAN broadcasting managed-like SSID name",
+        plain_english: "A wireless device appeared that is not part of the approved access point inventory.",
+        severity: "Medium",
+        tags: ["network", "rogue-ap", "wireless", "shadow-it"],
+        source_ref: "MITRE T1584",
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "ARP poisoning detected on subnet 192.168.50.0/24",
+        plain_english: "The network saw behavior consistent with traffic interception on the guest subnet.",
+        severity: "High",
+        tags: ["network", "sniffing", "adversary-in-middle", "wireless"],
+        source_ref: "MITRE T1557",
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Port scan detected from Rogue AP toward internal file server NYC-FS-01",
+        plain_english: "The unauthorized device attempted to discover reachable internal services.",
+        severity: "High",
+        tags: ["endpoint", "discovery", "network", "rogue-ap"],
+        source_ref: "MITRE T1046",
+        contextualize: false
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Network",
+        summary: "New guest user Guest_44 connected to Official_Guest_WiFi",
+        plain_english: "A guest joining the approved SSID is normal guest-network behavior.",
+        severity: "Low",
+        tags: ["decoy", "wireless", "guest"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "IP 192.168.50.112 assigned to known corporate laptop",
+        plain_english: "A normal DHCP assignment to a known device is not evidence of rogue access.",
+        severity: "Low",
+        tags: ["decoy", "dhcp", "network"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Wireless intrusion detection service active",
+        plain_english: "WIDS running is a normal defensive control, not the suspicious device itself.",
+        severity: "Low",
+        tags: ["decoy", "wireless", "defensive-control"],
+        contextualize: false
+      }
+    ]
   }
 };
 
@@ -1887,6 +2145,7 @@ function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, 
   if (tags.has("initial-access")) return "MITRE T1078";
   if (tags.has("execution") || tags.has("script")) return "MITRE T1059";
   if (tags.has("rce")) return "MITRE T1210";
+  if (tags.has("sqli")) return "MITRE T1190";
   if (tags.has("discovery")) return "MITRE T1083";
   if (tags.has("exfiltration") || tags.has("egress")) return "MITRE T1041";
   if (tags.has("c2")) return "MITRE T1071";
@@ -1896,6 +2155,10 @@ function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, 
   if (tags.has("persistence")) return "MITRE T1098";
   if (tags.has("cloud-transfer")) return "MITRE T1537";
   if (tags.has("registry")) return "MITRE T1547.001";
+  if (tags.has("mail-rule")) return "MITRE T1114.003";
+  if (tags.has("sniffing")) return "MITRE T1040";
+  if (tags.has("adversary-in-middle")) return "MITRE T1557";
+  if (tags.has("rogue-ap")) return "MITRE T1584";
   if (family === "Ransomware Precursor" && tags.has("backup")) return "MITRE T1490";
   if (family === "Ransomware Stage: Alpha" && tags.has("backup")) return "MITRE T1490";
   if (family === "Ransomware Stage: Alpha") return "MITRE T1486";
@@ -1930,7 +2193,10 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Supply Chain: Poisoned Update": 1,
     "Identity: Session Hijack": 0,
     "Stealth: Resource Exhaustion": 1,
-    "Recon: Password Spraying": 0
+    "Recon: Password Spraying": 0,
+    "BEC: Financial Diversion": 0,
+    "SQLi: Customer Data Harvest": 4,
+    "Shadow IT: Rogue Access Point": 3
   };
 
   return indexByFamily[family];
@@ -1940,11 +2206,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task")) indexes.add(1);
-  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change")) indexes.add(2);
-  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer")) indexes.add(4);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle")) indexes.add(2);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }
