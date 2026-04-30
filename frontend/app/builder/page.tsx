@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -23,13 +23,26 @@ import {
   Terminal,
   Trophy
 } from "lucide-react";
-import { askAiAnalyst, generateAiReport, getAiStatus, getScenarios, runSimulation } from "@/lib/api";
+import { askAiAnalyst, getAiStatus, getScenarios } from "@/lib/api";
 import { scenarios as fallbackScenarios, simulation as fallbackSimulation } from "@/lib/mock-data";
 import Link from "next/link";
+import { useLiveSimulation } from "@/components/LiveSimulationProvider";
 import { useViewMode } from "@/components/ViewModeProvider";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { scenarioFamilies } from "@/lib/scenario-catalog";
-import type { AIResponse, AIStatus, Scenario, SimulationRequest, SimulationResult, TelemetryEvent } from "@/types/adversim";
+import { generateScenarioCase } from "@/lib/scenario-director";
+import type {
+  AIResponse,
+  AIStatus,
+  EvidenceEvent,
+  Scenario,
+  ScenarioDifficulty,
+  ScenarioFamily,
+  ScenarioRandomness,
+  SimulationRequest,
+  SimulationResult,
+  TelemetryEvent
+} from "@/types/adversim";
 import type { LucideIcon } from "lucide-react";
 
 const intensityOptions = ["Low", "Medium", "High"] as const;
@@ -653,7 +666,7 @@ function buildStageEvents(stageIndex: number, request: SimulationRequest): Telem
   return eventsByStage[stageIndex];
 }
 
-function PulseLog({ event, index, active }: { event: TelemetryEvent; index: number; active: boolean }) {
+function PulseLog({ event, index, active }: { event: EvidenceEvent; index: number; active: boolean }) {
   return (
     <motion.li
       layout
@@ -665,16 +678,10 @@ function PulseLog({ event, index, active }: { event: TelemetryEvent; index: numb
       }`}
     >
       <div className="flex items-center justify-between gap-4">
-        <span className="technical text-[11px] text-lime">
-          {new Date(event.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-          })}
-        </span>
+        <span className="technical text-[11px] text-lime">{event.timestamp}</span>
         <span className="technical text-[10px] uppercase tracking-[0.22em] text-zinc-500">{event.source}</span>
       </div>
-      <p className="technical mt-2 text-xs leading-5 text-zinc-200">{event.message}</p>
+      <p className="technical mt-2 text-xs leading-5 text-zinc-200">{event.summary}</p>
     </motion.li>
   );
 }
@@ -751,12 +758,6 @@ function makeFallbackAiResponse(text: string): AIResponse {
   };
 }
 
-function makeAutoDebriefFallback(result: SimulationResult, scenarioTitle: string): AIResponse {
-  return makeFallbackAiResponse(
-    `Auto AI Debrief: ${scenarioTitle} completed with ${result.summary.incident_count} detection clusters, ${result.summary.confidence}% confidence, and ${result.timeline.length} reconstructed stages. The learning objective is to connect raw synthetic telemetry to detections, then explain the incident clearly enough for an analyst or manager to act.`
-  );
-}
-
 function sourceLabel(source: AIResponse["source"]) {
   if (source === "live-openai") {
     return "OpenAI live";
@@ -769,23 +770,52 @@ function sourceLabel(source: AIResponse["source"]) {
   return "guarded fallback";
 }
 
+function scenarioFamilyForBuilder(scenarioId: string): ScenarioFamily {
+  return scenarioId === "insider-data-drift" ? "Insider Data Drift" : "Credential Compromise";
+}
+
+function difficultyForIntensity(intensity: SimulationRequest["intensity"]): ScenarioDifficulty {
+  if (intensity === "High") {
+    return "Intermediate";
+  }
+
+  return "Beginner";
+}
+
+function randomnessForNoise(noiseLevel: SimulationRequest["noise_level"]): ScenarioRandomness {
+  if (noiseLevel === "Clean") {
+    return "Low";
+  }
+
+  if (noiseLevel === "Noisy") {
+    return "Chaos Lab";
+  }
+
+  return "Medium";
+}
+
+function evidenceToTelemetry(event: EvidenceEvent): TelemetryEvent {
+  return {
+    id: event.event_id,
+    timestamp: new Date().toISOString(),
+    source: event.source,
+    event_type: event.tags[0] ?? "synthetic_evidence",
+    user: event.user,
+    host: event.host,
+    message: event.summary,
+    severity: event.severity.toLowerCase() as TelemetryEvent["severity"],
+    tags: event.tags
+  };
+}
+
 export default function BuilderPage() {
   const [scenarios, setScenarios] = useState<Scenario[]>(fallbackScenarios);
   const [request, setRequest] = useState<SimulationRequest>(getInitialBuilderRequest);
-  const [result, setResult] = useState<SimulationResult>(fallbackSimulation);
-  const [pulseLogs, setPulseLogs] = useState<TelemetryEvent[]>(fallbackSimulation.telemetry.slice(-4));
-  const [isRunning, setIsRunning] = useState(false);
-  const [activeStageIndex, setActiveStageIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [metrics, setMetrics] = useState<LiveMetrics>({
-    incidents: fallbackSimulation.summary.incident_count,
-    confidence: fallbackSimulation.summary.confidence,
-    telemetry: fallbackSimulation.telemetry.length,
-    timeline: fallbackSimulation.timeline.length
-  });
+  const [result] = useState<SimulationResult>(fallbackSimulation);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(analystSeed);
   const [chatInput, setChatInput] = useState("");
   const [sessionId] = useState(getSessionId);
+  const builderCaseCounterRef = useRef(100);
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [aiSource, setAiSource] = useState<AIResponse["source"]>("fallback");
   const [aiModel, setAiModel] = useState("guarded-fallback");
@@ -793,9 +823,17 @@ export default function BuilderPage() {
   const [aiStatusMessage, setAiStatusMessage] = useState("Checking AI readiness...");
   const [aiStatusMode, setAiStatusMode] = useState<AIStatus["mode"]>("fallback-ready");
   const { isSocView } = useViewMode();
+  const {
+    currentCase,
+    streamedEvents,
+    isStreaming,
+    progress,
+    activeStageIndex,
+    completed: streamCompleted,
+    startSimulation
+  } = useLiveSimulation();
   const audienceMode = isSocView ? "soc" : "beginner";
   const [showMissionBanner, setShowMissionBanner] = useState(getInitialMissionBanner);
-  const [showCompletionCard, setShowCompletionCard] = useState(false);
   const [autoDebrief, setAutoDebrief] = useState<AIResponse | null>(null);
   const [isAutoBriefing, setIsAutoBriefing] = useState(false);
 
@@ -818,109 +856,49 @@ export default function BuilderPage() {
   const scenarioConfig = getBuilderScenario(request.scenario_id);
   const variantProfile = getVariantProfile(request);
   const chainStages = scenarioConfig.stages;
+  const pulseLogs = streamedEvents.slice(0, 12);
+  const activeStreamCase = currentCase;
+  const showCompletionCard = streamCompleted && Boolean(activeStreamCase);
+  const metrics: LiveMetrics = {
+    incidents: activeStreamCase?.key_evidence_event_ids.length ?? 0,
+    confidence: activeStreamCase?.confidence ?? 0,
+    telemetry: streamedEvents.length,
+    timeline: activeStreamCase?.chartData.mappedTactics.filter((count) => count > 0).length ?? 0
+  };
   const selectableScenarios = scenarios.filter((scenario) =>
     ["credential-compromise-chain", "insider-data-drift"].includes(scenario.id)
   );
 
-  async function handleRun() {
-    setIsRunning(true);
+  function handleRun() {
     setShowMissionBanner(false);
-    setShowCompletionCard(false);
     setAutoDebrief(null);
     setIsAutoBriefing(false);
-    setPulseLogs([]);
-    setProgress(0);
-    setActiveStageIndex(0);
-    setMetrics({ incidents: 0, confidence: 0, telemetry: 0, timeline: 0 });
     setChatMessages((current) => [
       {
         id: makeInteractionId("run"),
         role: "analyst",
-        text: "[AI Analyst]: Simulation replay started. Watch the active node border and telemetry feed as each phase contributes evidence."
+        text: "[AI Analyst]: Global live stream started. You can switch tabs while the event bus keeps pushing telemetry, detections, timeline nodes, and dashboard chart updates."
       },
       ...current.slice(0, 3)
     ]);
 
-    const nextResult = await runSimulation(request);
-    setResult(nextResult);
+    builderCaseCounterRef.current += 1;
 
-    const stageEventGroups = chainStages.map((_, stageIndex) => buildStageEvents(stageIndex, request));
-    const totalEvents = stageEventGroups.reduce((count, events) => count + events.length, 0);
-    const selectedReplayMilliseconds = replaySecondsByDuration[request.duration] * 1000;
-    const minimumReplayMilliseconds = totalEvents * logCadenceMilliseconds + chainStages.length * 2500;
-    const replayMilliseconds = Math.max(selectedReplayMilliseconds, minimumReplayMilliseconds);
-    const stageDurationMilliseconds = replayMilliseconds / chainStages.length;
-    const scheduledEvents: ScheduledEvent[] = stageEventGroups.flatMap((events, stageIndex) => {
-      const stageStart = stageIndex * stageDurationMilliseconds;
-      const eventTrainDuration = Math.max(0, (events.length - 1) * logCadenceMilliseconds);
-      const stageBreathingRoom = Math.max(0, stageDurationMilliseconds - eventTrainDuration);
-      const stageIntro = stageBreathingRoom * 0.58;
-
-      return events.map((event, eventIndex) => ({
-        event,
-        stageIndex,
-        offsetMilliseconds: stageStart + stageIntro + logCadenceMilliseconds * eventIndex
-      }));
+    const nextCase = generateScenarioCase({
+      family: scenarioFamilyForBuilder(request.scenario_id),
+      difficulty: difficultyForIntensity(request.intensity),
+      randomness: randomnessForNoise(request.noise_level),
+      trainingMode: "Guided",
+      seed: `${request.scenario_id}:${request.target_user}:${request.target_host}:${makeInteractionId("builder")}`,
+      caseNumber: builderCaseCounterRef.current,
+      procedural: true,
+      realtime: true
     });
-    const startedAt = readReplayClock();
-    const progressTimer = window.setInterval(() => {
-      const elapsed = readReplayClock() - startedAt;
-      setProgress(Math.min(99, Math.round((elapsed / replayMilliseconds) * 100)));
-    }, 250);
-    let emittedCount = 0;
 
-    for (let stageIndex = 0; stageIndex < chainStages.length; stageIndex += 1) {
-      await waitUntil(startedAt + stageIndex * stageDurationMilliseconds);
-      setActiveStageIndex(stageIndex);
-
-      for (const scheduledEvent of scheduledEvents.filter((event) => event.stageIndex === stageIndex)) {
-        await waitUntil(startedAt + scheduledEvent.offsetMilliseconds);
-        const { event } = scheduledEvent;
-        emittedCount += 1;
-        setPulseLogs((current) => [event, ...current].slice(0, 12));
-        setMetrics({
-          incidents: Math.min(nextResult.summary.incident_count, Math.ceil((stageIndex + 1) / 1.5)),
-          confidence: Math.min(nextResult.summary.confidence, 32 + stageIndex * 11 + Math.min(12, emittedCount)),
-          telemetry: emittedCount,
-          timeline: stageIndex + 1
-        });
-      }
-    }
-
-    await waitUntil(startedAt + replayMilliseconds);
-    window.clearInterval(progressTimer);
-    setProgress(100);
-    setMetrics({
-      incidents: nextResult.summary.incident_count,
-      confidence: nextResult.summary.confidence,
-      telemetry: Math.max(emittedCount, nextResult.telemetry.length),
-      timeline: nextResult.timeline.length
+    startSimulation(nextCase, {
+      durationMs: replaySecondsByDuration[request.duration] * 1000,
+      stageCount: chainStages.length
     });
-    window.localStorage.setItem("adversim-last-run", "complete");
-    setShowCompletionCard(true);
-    setIsRunning(false);
-
-    setIsAutoBriefing(true);
-    const debrief = await generateAiReport(
-      {
-        session_id: `${sessionId}-auto-debrief`,
-        audience: "judge"
-      },
-      makeAutoDebriefFallback(nextResult, scenarioConfig.title)
-    );
-    setAutoDebrief(debrief);
-    setAiSource(debrief.source);
-    setAiModel(debrief.model);
-    setAiRemainingCalls(debrief.remaining_session_calls);
-    setAiStatusMode(debrief.source === "live-openai" ? "live-ready" : debrief.source === "cached" ? "live-ready" : "fallback-ready");
-    setAiStatusMessage(
-      debrief.source === "live-openai"
-        ? "Auto AI Debrief generated from the completed investigation."
-        : debrief.source === "cached"
-          ? "Auto AI Debrief served from cache."
-          : "Auto AI Debrief used the guarded fallback while live AI stayed safe."
-    );
-    setIsAutoBriefing(false);
   }
 
   async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
@@ -954,9 +932,9 @@ export default function BuilderPage() {
     const response = await askAiAnalyst(
       {
         prompt: trimmedInput,
-        active_phase: chainStages[activeStageIndex].tactic,
+        active_phase: chainStages[activeStageIndex]?.tactic ?? chainStages[0].tactic,
         session_id: sessionId,
-        telemetry: pulseLogs.slice(0, 8),
+        telemetry: pulseLogs.slice(0, 8).map(evidenceToTelemetry),
         detections: result.detections
       },
       fallback
@@ -1010,7 +988,7 @@ export default function BuilderPage() {
             <button
               type="button"
               onClick={handleRun}
-              disabled={isRunning}
+              disabled={isStreaming}
               className="focus-ring flex h-12 items-center gap-2 rounded-[16px] bg-lime px-5 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:bg-zinc-700"
             >
               <Play aria-hidden size={17} />
@@ -1035,15 +1013,15 @@ export default function BuilderPage() {
               <h2 className="mt-3 text-2xl font-semibold text-ink">Case reconstructed. Report ready.</h2>
             </div>
             <span className="technical rounded-full border border-crimson/30 bg-crimson/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-crimson">
-              {result.summary.severity} severity
+              {activeStreamCase?.severity ?? "High"} severity
             </span>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-4">
             {[
-              ["Detections", result.summary.incident_count],
-              ["Confidence", `${result.summary.confidence}%`],
-              ["Telemetry", result.telemetry.length],
-              ["Timeline", result.timeline.length]
+              ["Detections", activeStreamCase?.key_evidence_event_ids.length ?? 0],
+              ["Confidence", `${activeStreamCase?.confidence ?? 0}%`],
+              ["Telemetry", activeStreamCase?.telemetry_events.length ?? 0],
+              ["Timeline", activeStreamCase?.chartData.mappedTactics.filter((count) => count > 0).length ?? 0]
             ].map(([label, value]) => (
               <div key={label} className="rounded-[18px] border border-line bg-black/25 p-4">
                 <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">{label}</p>
@@ -1073,10 +1051,16 @@ export default function BuilderPage() {
             <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-300">
               {isAutoBriefing
                 ? "AI is reviewing the synthetic detections, timeline, and report context without waiting for a prompt."
-                : autoDebrief?.text ?? "A judge-ready debrief will appear here as soon as the replay finishes."}
+                : autoDebrief?.text ?? "The global event bus finished streaming. Open the Dashboard to investigate the active case, charts, detections, timeline, and report."}
             </p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+            >
+              Launch Active Investigation -&gt;
+            </Link>
             <Link
               href="/timeline"
               className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] border border-line bg-white/5 px-4 text-sm font-semibold text-ink transition hover:border-lime/40"
@@ -1085,7 +1069,7 @@ export default function BuilderPage() {
             </Link>
             <Link
               href="/reports"
-              className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+              className="focus-ring inline-flex h-11 items-center justify-center rounded-[15px] border border-line bg-white/5 px-4 text-sm font-semibold text-ink transition hover:border-lime/40"
             >
               Generate Report
             </Link>
@@ -1104,6 +1088,9 @@ export default function BuilderPage() {
               <div className="flex flex-wrap items-center gap-3">
                 <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
                   Cybersecurity
+                </span>
+                <span className="technical rounded-full border border-line bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-zinc-300">
+                  [ Observe ]
                 </span>
                 <p className="technical text-xs uppercase tracking-[0.32em] text-lime">Mock Incident Builder</p>
               </div>
@@ -1262,9 +1249,6 @@ export default function BuilderPage() {
                           target_user: scenario.id === "insider-data-drift" ? "morgan.ellis" : "finance.admin",
                           target_host: scenario.id === "insider-data-drift" ? "NYC-FIN-021" : "NYC-WKS-014"
                         });
-                        setActiveStageIndex(0);
-                        setProgress(0);
-                        setPulseLogs([]);
                         setChatMessages([
                           {
                             id: `seed-${scenario.id}`,
@@ -1341,7 +1325,7 @@ export default function BuilderPage() {
               <p className="mt-2 text-sm leading-6 text-zinc-300">{variantProfile.lens}</p>
               <p className="mt-2 text-xs leading-5 text-zinc-500">{variantProfile.learnerGoal}</p>
               <p className="technical mt-3 text-[10px] uppercase tracking-[0.16em] text-zinc-600">
-                2 scenarios x 9 profiles = 18 guided lab runs
+                {scenarioFamilies.length} scenarios x 9 profiles = {scenarioFamilies.length * 9} guided lab runs
               </p>
             </div>
 
@@ -1372,15 +1356,24 @@ export default function BuilderPage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleRun}
-              disabled={isRunning}
-              className="focus-ring mt-2 flex h-14 w-full items-center justify-center gap-3 rounded-[18px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
-            >
-              {isRunning ? <RefreshCw aria-hidden size={19} className="animate-spin" /> : <Play aria-hidden size={19} />}
-              Run Mock Simulation
-            </button>
+            {showCompletionCard ? (
+              <Link
+                href="/"
+                className="focus-ring mt-2 flex h-14 w-full items-center justify-center gap-3 rounded-[18px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+              >
+                Launch Active Investigation -&gt;
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={handleRun}
+                disabled={isStreaming}
+                className="focus-ring mt-2 flex h-14 w-full items-center justify-center gap-3 rounded-[18px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
+              >
+                {isStreaming ? <RefreshCw aria-hidden size={19} className="animate-spin" /> : <Play aria-hidden size={19} />}
+                Run Mock Simulation
+              </button>
+            )}
 
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -1398,9 +1391,11 @@ export default function BuilderPage() {
 
             <div className="rounded-[18px] border border-line bg-black/25 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-ink">{result.summary.status}</span>
+                <span className="text-sm font-semibold text-ink">
+                  {isStreaming ? "Live Stream Running" : showCompletionCard ? "Active Investigation Ready" : result.summary.status}
+                </span>
                 <span className="technical rounded-full border border-crimson/30 bg-crimson/10 px-2.5 py-1 text-xs text-crimson">
-                  {result.summary.severity}
+                  {activeStreamCase?.severity ?? result.summary.severity}
                 </span>
               </div>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
@@ -1429,7 +1424,7 @@ export default function BuilderPage() {
           </div>
           <motion.ul layout className="mt-4 max-h-[min(60vh,640px)] space-y-3 overflow-y-auto pr-1 pb-1">
             {pulseLogs.map((event, index) => (
-              <PulseLog key={`${event.id}-${index}`} event={event} index={index} active={index === 0} />
+              <PulseLog key={`${event.event_id}-${index}`} event={event} index={index} active={index === 0} />
             ))}
           </motion.ul>
         </GlassCard>

@@ -12,7 +12,10 @@ export const scenarioFamilies: ScenarioFamily[] = [
   "Endpoint Activity",
   "Exfiltration Signal",
   "Lateral Movement",
-  "Ransomware Precursor"
+  "Ransomware Precursor",
+  "Supply Chain Compromise",
+  "Spear-Phishing Campaign",
+  "Web API Exploitation"
 ];
 
 export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert"];

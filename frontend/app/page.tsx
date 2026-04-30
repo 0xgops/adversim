@@ -31,10 +31,11 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { useLiveSimulation } from "@/components/LiveSimulationProvider";
 import { useViewMode } from "@/components/ViewModeProvider";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { getLatestSimulation } from "@/lib/api";
-import { clearActiveCaseState } from "@/lib/active-case";
+import { LAST_RUN_KEY } from "@/lib/active-case";
 import { clearCaseHistory, readCaseHistory } from "@/lib/case-history";
 import { simulation as fallbackSimulation } from "@/lib/mock-data";
 import type { ScenarioCase, SimulationResult } from "@/types/adversim";
@@ -107,6 +108,7 @@ export default function DashboardPage() {
   const [hasCompletedRun, setHasCompletedRun] = useState(getInitialRunState);
   const [activeMetricInfo, setActiveMetricInfo] = useState<string | null>(null);
   const { isSocView } = useViewMode();
+  const { completed: streamCompleted, purgeEnvironment } = useLiveSimulation();
   const audienceMode = isSocView ? "soc" : "beginner";
   const [activeCase, setActiveCase] = useState<ScenarioCase | null>(getInitialDashboardCase);
   const [chartRevision, setChartRevision] = useState(0);
@@ -130,6 +132,7 @@ export default function DashboardPage() {
 
       setActiveCase(nextCase);
       setHasActiveInvestigation(true);
+      setHasCompletedRun(window.localStorage.getItem(LAST_RUN_KEY) === "complete");
       setChartRevision((current) => current + 1);
     }
 
@@ -227,6 +230,7 @@ export default function DashboardPage() {
   }, [result.summary.incident_count, result.summary.confidence, result.telemetry.length, result.timeline.length]);
 
   const isSystemIdle = !activeCase;
+  const investigationComplete = hasCompletedRun || streamCompleted;
 
   const severityData = useMemo(() => {
     if (!activeCase) {
@@ -253,7 +257,7 @@ export default function DashboardPage() {
   }, [activeCase]);
 
   function resetEnvironment() {
-    clearActiveCaseState();
+    purgeEnvironment();
     clearCaseHistory();
     setActiveCase(null);
     setHasActiveInvestigation(false);
@@ -266,11 +270,11 @@ export default function DashboardPage() {
   }
 
   const navigateFromTactics = () => {
-    router.push(hasCompletedRun ? "/timeline" : "/investigation");
+    router.push(investigationComplete ? "/timeline" : "/investigation");
   };
 
   const navigateFromSeverity = () => {
-    router.push(hasCompletedRun ? "/detections" : "/investigation");
+    router.push(investigationComplete ? "/detections" : "/investigation");
   };
 
 
@@ -336,6 +340,9 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-3">
               <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
                 Cybersecurity
+              </span>
+              <span className="technical rounded-full border border-line bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-zinc-300">
+                [ Investigate ]
               </span>
               <span className="technical text-xs uppercase tracking-[0.32em] text-lime">
                 AdverSim // synthetic defense lab
@@ -403,30 +410,30 @@ export default function DashboardPage() {
           <div className={`soc-compact-card rounded-[24px] border border-line bg-black/30 ${isSocView ? "p-3" : "p-5"}`}>
             <div className="flex items-center justify-between">
               <p className="technical text-xs uppercase tracking-[0.25em] text-zinc-500">
-                {hasCompletedRun ? "Investigation complete" : "Mission"}
+                {investigationComplete ? "Investigation complete" : "Mission"}
               </p>
               <span
                 className={`technical rounded-full border px-3 py-1 text-xs ${
-                  hasCompletedRun
+                  investigationComplete
                     ? "border-crimson/30 bg-crimson/10 text-crimson"
                     : "border-lime/30 bg-lime/10 text-lime"
                 }`}
               >
-                {hasCompletedRun ? result.summary.severity : "Ready"}
+                {investigationComplete ? result.summary.severity : "Ready"}
               </span>
             </div>
             <p className="mt-4 text-3xl font-semibold text-ink">
-              {hasCompletedRun ? "Case Closed" : "You Are The Analyst"}
+              {investigationComplete ? "Case Closed" : "You Are The Analyst"}
             </p>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              {hasCompletedRun
+              {investigationComplete
                 ? `${result.summary.incident_count} detections reviewed, ${result.timeline.length} stages reconstructed, and ${result.summary.confidence}% confidence earned.`
                 : hasActiveInvestigation
                   ? "You have an active case staged. Check the charts, then jump back into the evidence board without losing the scenario."
                   : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
             </p>
             <div className="mt-5 space-y-3">
-              {(hasCompletedRun
+              {(investigationComplete
                 ? ["Detections reviewed", "Timeline reconstructed", "Report ready"]
                 : hasActiveInvestigation
                   ? ["Review dashboard heat", "Resume the evidence board", "Submit your finding"]
@@ -438,7 +445,7 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            {hasCompletedRun ? (
+            {investigationComplete ? (
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <Link
                   href="/timeline"
@@ -519,7 +526,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromTactics}
             className={`focus-ring relative block w-full cursor-pointer rounded-[18px] text-left ${isSocView ? "h-[350px]" : "h-72"}`}
-            aria-label={hasCompletedRun ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
+            aria-label={investigationComplete ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`tactics-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
@@ -551,7 +558,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to {hasCompletedRun ? "open Timeline" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
+            Click chart to {investigationComplete ? "open Timeline" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
 
@@ -566,7 +573,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromSeverity}
             className={`focus-ring relative block w-full cursor-pointer rounded-[18px] ${isSocView ? "h-[350px]" : "h-72"}`}
-            aria-label={hasCompletedRun ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
+            aria-label={investigationComplete ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`severity-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
@@ -606,7 +613,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to {hasCompletedRun ? "open Detections" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
+            Click chart to {investigationComplete ? "open Detections" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
       </section>
@@ -619,13 +626,13 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
-              {hasCompletedRun ? "Live simulation flow" : "Lab navigation flow"}
+              {investigationComplete ? "Live simulation flow" : "Lab navigation flow"}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-ink">
               {"Builder -> Telemetry -> Detections -> Timeline -> Report"}
             </h2>
           </div>
-          {hasCompletedRun ? (
+          {investigationComplete ? (
             <AlertTriangle aria-hidden className="text-crimson" size={20} />
           ) : (
             <Compass aria-hidden className="text-lime" size={20} />

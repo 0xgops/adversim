@@ -657,6 +657,228 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["decoy", "security-tooling"]
       }
     ]
+  },
+  "Supply Chain Compromise": {
+    family: "Supply Chain Compromise",
+    titles: ["Supply Chain Trust Drift", "Vendor Update Review", "Third-Party Package Signal"],
+    briefings: [
+      "A trusted vendor workflow generated unusual package and build telemetry. Identify the clues that suggest supply-chain risk without assuming a real compromise.",
+      "CI, package, and endpoint signals show a suspicious trust-chain change. Decide which events belong in the defensive incident story."
+    ],
+    attackerProfiles: ["Synthetic vendor-risk persona", "Third-party trust emulator", "Build pipeline training actor"],
+    expectedFindings: [
+      "Package integrity or publisher context changed",
+      "Build runner activity diverged from normal release behavior",
+      "Endpoint or identity evidence aligned with the suspicious update window"
+    ],
+    recommendedResponse: [
+      "Pause the affected package or vendor update workflow",
+      "Validate checksums, publisher identity, and release approval",
+      "Review CI runner telemetry and artifact provenance",
+      "Notify application owners and preserve build logs"
+    ],
+    preventionLessons: ["Pin trusted dependencies", "Verify artifact provenance", "Monitor CI runner behavior"],
+    keyEvents: [
+      {
+        source: "CI/CD",
+        summary: "Build runner pulled a package outside the approved release window",
+        plain_english: "The build system used a dependency at a time that does not match the normal release process.",
+        severity: "High",
+        tags: ["supply-chain", "ci", "execution"]
+      },
+      {
+        source: "Package Registry",
+        summary: "Publisher metadata changed before the dependency update",
+        plain_english: "The package trust details shifted before the update, which defenders should review.",
+        severity: "High",
+        tags: ["supply-chain", "identity", "package"]
+      },
+      {
+        source: "Endpoint",
+        summary: "Developer workstation downloaded a newly staged artifact",
+        plain_english: "The endpoint received an artifact tied to the suspicious build window.",
+        severity: "Medium",
+        tags: ["endpoint", "artifact", "collection"]
+      },
+      {
+        source: "Repository Audit",
+        summary: "Release configuration changed without a matching change ticket",
+        plain_english: "The repo configuration changed, but the normal approval trail is missing.",
+        severity: "Critical",
+        tags: ["repository", "supply-chain", "privilege"]
+      }
+    ],
+    decoyEvents: [
+      {
+        source: "CI/CD",
+        summary: "Nightly test workflow completed on an unrelated branch",
+        plain_english: "This looks like build activity, but it is routine and outside the affected release path.",
+        severity: "Low",
+        tags: ["decoy", "ci"]
+      },
+      {
+        source: "Repository Audit",
+        summary: "Documentation-only pull request merged successfully",
+        plain_english: "A docs merge is normal repository activity and does not support the case.",
+        severity: "Low",
+        tags: ["decoy", "repository"]
+      },
+      {
+        source: "Package Registry",
+        summary: "Approved internal package cache refresh completed",
+        plain_english: "This cache refresh is expected platform maintenance, not suspicious evidence.",
+        severity: "Low",
+        tags: ["decoy", "package"]
+      }
+    ]
+  },
+  "Spear-Phishing Campaign": {
+    family: "Spear-Phishing Campaign",
+    titles: ["Spear-Phishing Triage", "Targeted Email Investigation", "Mailbox Lure Review"],
+    briefings: [
+      "Mail and identity telemetry show a targeted message followed by suspicious account activity. Select the clues that prove the campaign path.",
+      "A user received a convincing business-themed message, then several access signals shifted. Identify what matters and what is normal mailbox noise."
+    ],
+    attackerProfiles: ["Synthetic social-engineering emulator", "Mailbox campaign training actor", "Targeted lure persona"],
+    expectedFindings: [
+      "Targeted inbound message with risky attachment or link metadata",
+      "User interaction followed by unusual sign-in or mailbox activity",
+      "Follow-on cloud or endpoint signal that increases campaign confidence"
+    ],
+    recommendedResponse: [
+      "Quarantine related messages and review recipients",
+      "Revoke affected sessions and validate MFA posture",
+      "Preserve mail gateway, identity, and endpoint telemetry",
+      "Coach users on reporting targeted messages"
+    ],
+    preventionLessons: ["Use phishing-resistant MFA", "Alert on mailbox rule changes", "Correlate mail clicks with identity telemetry"],
+    keyEvents: [
+      {
+        source: "Mail Gateway",
+        summary: "Targeted invoice-themed message reached the target inbox",
+        plain_english: "The message theme matches the user's role and deserves review as a targeted lure.",
+        severity: "Medium",
+        tags: ["email", "phishing", "initial-access"]
+      },
+      {
+        source: "Mail Gateway",
+        summary: "URL rewrite telemetry recorded a user interaction with the message",
+        plain_english: "The user interacted with the message, which links the email to the later account activity.",
+        severity: "High",
+        tags: ["email", "user-interaction", "credential-access"]
+      },
+      {
+        source: "Cloud Identity",
+        summary: "New sign-in appeared shortly after the mail interaction",
+        plain_english: "The account was accessed from a new context soon after the suspicious email event.",
+        severity: "High",
+        tags: ["cloud", "identity", "initial-access"]
+      },
+      {
+        source: "Mail Audit",
+        summary: "Mailbox forwarding rule review occurred after the new session",
+        plain_english: "Mailbox settings changed during the suspicious session window, raising campaign confidence.",
+        severity: "Critical",
+        tags: ["mail", "post-login", "exfiltration"]
+      }
+    ],
+    decoyEvents: [
+      {
+        source: "Mail Gateway",
+        summary: "Bulk newsletter delivered to the marketing distribution list",
+        plain_english: "This is broad newsletter traffic, not a targeted campaign clue.",
+        severity: "Low",
+        tags: ["decoy", "email"]
+      },
+      {
+        source: "Calendar",
+        summary: "Meeting reminder email opened from a managed mobile client",
+        plain_english: "This is normal mailbox usage and does not support the campaign story.",
+        severity: "Low",
+        tags: ["decoy", "calendar"]
+      },
+      {
+        source: "Helpdesk",
+        summary: "Awareness training reminder sent to all employees",
+        plain_english: "Security training email is expected and unrelated to the suspicious user sequence.",
+        severity: "Low",
+        tags: ["decoy", "training"]
+      }
+    ]
+  },
+  "Web API Exploitation": {
+    family: "Web API Exploitation",
+    titles: ["Web API Abuse Signal", "Public Endpoint Investigation", "API Rate Anomaly Review"],
+    briefings: [
+      "API gateway, identity, and application telemetry show unusual access to a public endpoint. Identify which events support abuse of the service.",
+      "A public API generated a noisy request pattern with a few strong clues. Separate normal traffic from the defensive findings."
+    ],
+    attackerProfiles: ["Synthetic API-abuse emulator", "Public endpoint training persona", "Application telemetry lab actor"],
+    expectedFindings: [
+      "API request rate or route mix changed sharply",
+      "Authentication or token errors clustered around sensitive endpoints",
+      "Application and gateway logs aligned on the same target host"
+    ],
+    recommendedResponse: [
+      "Review API gateway logs and affected routes",
+      "Validate authentication failures and token scope",
+      "Apply rate-limit or WAF policy according to procedure",
+      "Preserve application logs for the suspicious window"
+    ],
+    preventionLessons: ["Monitor API route baselines", "Alert on token error bursts", "Enforce least-privilege API scopes"],
+    keyEvents: [
+      {
+        source: "API Gateway",
+        summary: "Request rate exceeded the endpoint baseline for a sensitive route",
+        plain_english: "The public endpoint received more requests than it normally does.",
+        severity: "High",
+        tags: ["api", "network", "discovery"]
+      },
+      {
+        source: "Identity",
+        summary: "Token-scope errors clustered around the same API route",
+        plain_english: "The requests repeatedly asked for access the token did not have.",
+        severity: "High",
+        tags: ["api", "identity", "credential-access"]
+      },
+      {
+        source: "Application",
+        summary: "Unusual parameter pattern was normalized as inert training text",
+        plain_english: "The app observed strange request shape, represented safely as non-functional lab data.",
+        severity: "Medium",
+        tags: ["api", "application", "execution"]
+      },
+      {
+        source: "WAF",
+        summary: "Policy matched repeated probing against the protected endpoint",
+        plain_english: "The protective layer saw repeated suspicious access attempts to the same route.",
+        severity: "Critical",
+        tags: ["api", "waf", "network"]
+      }
+    ],
+    decoyEvents: [
+      {
+        source: "API Gateway",
+        summary: "Health-check requests completed from the internal monitor",
+        plain_english: "This is expected monitoring traffic and should not be selected.",
+        severity: "Low",
+        tags: ["decoy", "monitoring"]
+      },
+      {
+        source: "Application",
+        summary: "Routine customer export job used an approved service token",
+        plain_english: "The export job is authorized and does not match the suspicious route pattern.",
+        severity: "Low",
+        tags: ["decoy", "application"]
+      },
+      {
+        source: "CDN",
+        summary: "Static asset cache miss increased during a product launch",
+        plain_english: "This traffic spike is explainable business context, not API abuse evidence.",
+        severity: "Low",
+        tags: ["decoy", "cdn"]
+      }
+    ]
   }
 };
 
@@ -770,6 +992,9 @@ function sourceRefForEvent(family: ScenarioFamily, event: EventTemplate, isKeyEv
   if (tags.has("remote-admin") || tags.has("east-west") || tags.has("lateral-movement")) return "MITRE T1021";
   if (family === "Ransomware Precursor" && tags.has("backup")) return "MITRE T1490";
   if (family === "Ransomware Precursor") return "MITRE T1486";
+  if (tags.has("supply-chain") || tags.has("package")) return "MITRE T1195";
+  if (tags.has("phishing") || tags.has("email")) return "MITRE T1566";
+  if (tags.has("api") || tags.has("waf")) return "OWASP API telemetry";
   if (tags.has("privilege") || tags.has("privilege-review")) return "MITRE T1068";
 
   return "ATT&CK mapped";
@@ -785,7 +1010,10 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Endpoint Activity": 1,
     "Exfiltration Signal": 4,
     "Lateral Movement": 3,
-    "Ransomware Precursor": 1
+    "Ransomware Precursor": 1,
+    "Supply Chain Compromise": 1,
+    "Spear-Phishing Campaign": 0,
+    "Web API Exploitation": 3
   };
 
   return indexByFamily[family];
@@ -795,11 +1023,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention")) indexes.add(1);
-  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin")) indexes.add(2);
-  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas")) indexes.add(4);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository")) indexes.add(2);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }
@@ -933,17 +1161,31 @@ export function generateQuickStartCase({
   });
 }
 export function generateDailyThreatQueue(seed = new Date().toDateString()) {
-  const families: ScenarioFamily[] = [
-    "Cloud Account Takeover",
-    "Insider Data Drift",
-    "Credential Compromise",
-    "Exfiltration Signal",
-    "Endpoint Activity",
-    "Lateral Movement",
-    "Ransomware Precursor"
+  const families = scenarioFamilies;
+  const difficulties: ScenarioDifficulty[] = [
+    "Beginner",
+    "Intermediate",
+    "Expert",
+    "Intermediate",
+    "Beginner",
+    "Expert",
+    "Intermediate",
+    "Expert",
+    "Intermediate",
+    "Expert"
   ];
-  const difficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert", "Intermediate", "Beginner", "Expert", "Intermediate"];
-  const randomness: ScenarioRandomness[] = ["Low", "Medium", "Medium", "Chaos Lab", "Low", "Medium", "Medium"];
+  const randomness: ScenarioRandomness[] = [
+    "Low",
+    "Medium",
+    "Medium",
+    "Chaos Lab",
+    "Low",
+    "Medium",
+    "Medium",
+    "Chaos Lab",
+    "Medium",
+    "Chaos Lab"
+  ];
 
   return families.map((family, index) => ({
     time: formatClock(30 + index * 105),

@@ -40,6 +40,22 @@ export function readActiveCase() {
   return parseStoredActiveCase(window.localStorage.getItem(ACTIVE_CASE_KEY));
 }
 
+export function publishActiveCaseState(caseFile: ScenarioCase, { complete = false }: { complete?: boolean } = {}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(ACTIVE_CASE_KEY, JSON.stringify(caseFile));
+
+  if (complete) {
+    window.localStorage.setItem(LAST_RUN_KEY, "complete");
+  } else {
+    window.localStorage.removeItem(LAST_RUN_KEY);
+  }
+
+  window.dispatchEvent(new CustomEvent(ACTIVE_CASE_EVENT, { detail: caseFile }));
+}
+
 export function clearActiveCaseState() {
   if (typeof window === "undefined") {
     return;

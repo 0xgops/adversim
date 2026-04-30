@@ -20,6 +20,7 @@ import {
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { useViewMode } from "@/components/ViewModeProvider";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
+import { publishActiveCaseState } from "@/lib/active-case";
 import { readCaseHistory, recordCaseHistory } from "@/lib/case-history";
 import {
   generateDailyThreatQueue,
@@ -155,9 +156,8 @@ function publishActiveCase(caseFile: ScenarioCase) {
     return;
   }
 
-  window.localStorage.setItem("adversim-active-case", JSON.stringify(caseFile));
+  publishActiveCaseState(caseFile);
   recordCaseHistory(caseFile);
-  window.dispatchEvent(new CustomEvent("adversim-active-case", { detail: caseFile }));
 }
 type ScenarioDirectorLabProps = {
   quickStart?: boolean;

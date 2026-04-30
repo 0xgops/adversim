@@ -102,7 +102,10 @@ export type ScenarioFamily =
   | "Endpoint Activity"
   | "Exfiltration Signal"
   | "Lateral Movement"
-  | "Ransomware Precursor";
+  | "Ransomware Precursor"
+  | "Supply Chain Compromise"
+  | "Spear-Phishing Campaign"
+  | "Web API Exploitation";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";

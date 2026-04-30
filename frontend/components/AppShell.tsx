@@ -19,11 +19,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { GuideWidget } from "@/components/GuideWidget";
+import { LiveSimulationProvider, useLiveSimulation } from "@/components/LiveSimulationProvider";
 import { PitchWidget } from "@/components/PitchWidget";
 import { ViewModeProvider, useViewMode } from "@/components/ViewModeProvider";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { getAiStatus } from "@/lib/api";
-import { clearActiveCaseState, readActiveCase } from "@/lib/active-case";
+import { readActiveCase } from "@/lib/active-case";
 import { scenarioFamilies } from "@/lib/scenario-catalog";
 import type { AIStatus } from "@/types/adversim";
 
@@ -91,9 +92,10 @@ function AppShellContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [hasActiveInvestigation, setHasActiveInvestigation] = useState(false);
   const { isSocView } = useViewMode();
+  const { isStreaming, purgeEnvironment } = useLiveSimulation();
 
   function closeActiveInvestigation() {
-    clearActiveCaseState();
+    purgeEnvironment();
     setHasActiveInvestigation(false);
   }
 
@@ -143,6 +145,15 @@ function AppShellContent({ children }: { children: ReactNode }) {
 
             <div className="flex items-center gap-3">
               <ViewModeToggle className="hidden sm:inline-flex" />
+              {isStreaming ? (
+                <div className="glass-panel hidden items-center gap-2 rounded-full border-crimson/25 px-3 py-2 text-crimson md:flex">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-crimson opacity-50" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-crimson" />
+                  </span>
+                  <span className="technical text-xs uppercase tracking-[0.22em]">Live</span>
+                </div>
+              ) : null}
               <div className="glass-panel hidden items-center gap-3 rounded-full px-4 py-2 md:flex">
                 <span className="relative flex h-2.5 w-2.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-40" />
@@ -230,7 +241,9 @@ function AppShellContent({ children }: { children: ReactNode }) {
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <ViewModeProvider>
-      <AppShellContent>{children}</AppShellContent>
+      <LiveSimulationProvider>
+        <AppShellContent>{children}</AppShellContent>
+      </LiveSimulationProvider>
     </ViewModeProvider>
   );
 }
