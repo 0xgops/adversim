@@ -7,40 +7,39 @@ import type {
   ScenarioRandomness,
   TrainingMode
 } from "@/types/adversim";
-import {
-  scenarioDifficulties,
-  scenarioFamilies,
-  scenarioRandomnessLevels,
-  trainingModes
-} from "@/lib/scenario-catalog";
 
-export {
-  scenarioDifficulties,
-  scenarioFamilies,
-  scenarioRandomnessLevels,
-  trainingModes
-} from "@/lib/scenario-catalog";
-
-type EventTemplate = {
+type ScenarioEventPackage = {
   source: string;
   summary: string;
   plain_english: string;
   severity: EvidenceEvent["severity"];
   tags: string[];
   source_ref?: string;
+  contextualize?: boolean;
 };
 
-type ScenarioTemplate = {
+type ScenarioPackage = {
   family: ScenarioFamily;
   titles: string[];
-  briefings: string[];
+  missionBriefings: string[];
+  operationalGuidance?: string[];
+  targetUsers?: string[];
+  targetHosts?: string[];
+  defaultDifficulty?: ScenarioDifficulty;
   attackerProfiles: string[];
   expectedFindings: string[];
   recommendedResponse: string[];
   preventionLessons: string[];
-  keyEvents: EventTemplate[];
-  decoyEvents: EventTemplate[];
+  threatLogs: ScenarioEventPackage[];
+  backgroundNoise: ScenarioEventPackage[];
 };
+
+export type ScenarioEventDefinition = ScenarioEventPackage;
+export type ScenarioPackageDefinition = ScenarioPackage;
+
+export const scenarioDifficulties: ScenarioDifficulty[] = ["Beginner", "Intermediate", "Expert"];
+export const scenarioRandomnessLevels: ScenarioRandomness[] = ["Low", "Medium", "Chaos Lab"];
+export const trainingModes: TrainingMode[] = ["Guided", "Blind Investigation"];
 
 const users = [
   "finance.admin",
@@ -108,7 +107,7 @@ const hosts = [
   "EUC-KIOSK-018"
 ];
 
-const commonDecoyEvents: EventTemplate[] = [
+const sharedBackgroundNoise: ScenarioEventPackage[] = [
   {
     source: "Calendar",
     summary: "Routine calendar sync completed from a trusted mobile client",
@@ -146,11 +145,11 @@ const commonDecoyEvents: EventTemplate[] = [
   }
 ];
 
-const templates: Record<ScenarioFamily, ScenarioTemplate> = {
+export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
   "Credential Compromise": {
     family: "Credential Compromise",
     titles: ["Credential Compromise Chain", "Privileged Login Anomaly", "Authentication Pressure Case"],
-    briefings: [
+    missionBriefings: [
       "A suspicious authentication pattern has been detected involving a privileged account. Decide whether this is normal behavior or a likely compromise chain.",
       "Several identity and endpoint signals landed close together. Objective: separate meaningful clues from normal background activity."
     ],
@@ -167,7 +166,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Preserve authentication, endpoint, and network logs"
     ],
     preventionLessons: ["Enable MFA", "Alert on failed-login bursts", "Monitor privileged account behavior"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Auth",
         summary: "Multiple failed login attempts for the target account",
@@ -197,7 +196,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["network", "exfiltration"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Endpoint",
         summary: "Routine collaboration app update completed",
@@ -224,7 +223,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Insider Data Drift": {
     family: "Insider Data Drift",
     titles: ["Insider Data Drift", "Sensitive File Handling Case", "External Share Review"],
-    briefings: [
+    missionBriefings: [
       "A data access pattern changed for one user. Decide whether this looks like normal work or a policy risk that needs escalation.",
       "File, DLP, and SaaS audit signals suggest a data handling concern. Identify the clues that belong together."
     ],
@@ -241,7 +240,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Escalate according to insider-risk policy"
     ],
     preventionLessons: ["Use least privilege", "Monitor sensitive labels", "Require review for external sharing"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Fileshare",
         summary: "After-hours access to sensitive finance folders",
@@ -271,7 +270,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["network", "exfiltration"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "VPN",
         summary: "Normal VPN login from a known device",
@@ -298,7 +297,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Cloud Account Takeover": {
     family: "Cloud Account Takeover",
     titles: ["Cloud Login Anomaly", "Impossible Travel Review", "New Device Cloud Session"],
-    briefings: [
+    missionBriefings: [
       "Cloud sign-in telemetry shows an unusual access pattern. Identify which events support account takeover risk.",
       "A user session changed location and device context quickly. Decide what belongs in the incident narrative."
     ],
@@ -315,7 +314,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Confirm user travel and device ownership"
     ],
     preventionLessons: ["Enable conditional access", "Alert on impossible travel", "Require device compliance"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Cloud Identity",
         summary: "Impossible travel signal between two distant locations",
@@ -338,7 +337,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["mail", "post-login"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Helpdesk",
         summary: "Routine password reset completed three days earlier",
@@ -365,7 +364,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Endpoint Activity": {
     family: "Endpoint Activity",
     titles: ["Endpoint Activity Review", "Administrative Shell Signal", "Process Lineage Case"],
-    briefings: [
+    missionBriefings: [
       "Endpoint telemetry shows unusual process lineage. Identify which clues are suspicious without treating normal admin activity as malicious.",
       "A workstation generated process and script logging signals. Build the defensive story from safe synthetic telemetry."
     ],
@@ -382,7 +381,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Triage adjacent identity and network signals"
     ],
     preventionLessons: ["Baseline admin tooling", "Alert on unusual process chains", "Correlate endpoint events with identity context"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "EDR",
         summary: "Office application spawned administrative shell telemetry",
@@ -405,7 +404,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["edr", "baseline"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Patch",
         summary: "Approved software update service restarted",
@@ -432,7 +431,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Exfiltration Signal": {
     family: "Exfiltration Signal",
     titles: ["Outbound Transfer Signal", "Data Egress Review", "Network Pulse Investigation"],
-    briefings: [
+    missionBriefings: [
       "Network and DNS telemetry show a possible data egress pattern. Identify the sequence that makes the case stronger.",
       "Outbound activity increased after internal discovery signals. Decide which evidence belongs in the report."
     ],
@@ -449,7 +448,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Block or monitor suspicious egress path according to policy"
     ],
     preventionLessons: ["Monitor egress baselines", "Correlate DNS and proxy telemetry", "Tag sensitive data movement"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Fileshare",
         summary: "Sensitive directory enumeration preceded transfer activity",
@@ -472,7 +471,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["firewall", "egress"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Proxy",
         summary: "Streaming media traffic from a break room subnet",
@@ -499,7 +498,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Lateral Movement": {
     family: "Lateral Movement",
     titles: ["Lateral Movement Drill", "Internal Pivot Investigation", "East-West Access Review"],
-    briefings: [
+    missionBriefings: [
       "Identity and endpoint signals suggest a user context may have moved between internal systems. Identify which clues prove the movement path and which are ordinary admin noise.",
       "Several internal access events landed close together across workstations and servers. Build the defensive story without assuming every remote-looking event is malicious."
     ],
@@ -516,7 +515,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Preserve endpoint and identity telemetry for both hosts"
     ],
     preventionLessons: ["Segment sensitive systems", "Alert on unusual east-west access", "Review privileged session patterns"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Auth",
         summary: "New internal logon path observed from the target workstation",
@@ -553,7 +552,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["edr", "correlation"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Helpdesk",
         summary: "Approved remote support session closed for a different workstation",
@@ -580,7 +579,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Ransomware Precursor": {
     family: "Ransomware Precursor",
     titles: ["Ransomware Precursor Review", "Pre-Encryption Signal Drill", "Backup Risk Investigation"],
-    briefings: [
+    missionBriefings: [
       "Several defensive signals resemble early-stage ransomware preparation, but no real malware or encryption is present. Identify the warning signs defenders should escalate.",
       "Endpoint and file telemetry show a risky pre-impact pattern. Separate the meaningful warning signs from routine maintenance events."
     ],
@@ -597,7 +596,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Confirm recovery controls and preserve endpoint logs"
     ],
     preventionLessons: ["Protect backups with separate access controls", "Alert on rapid file-change bursts", "Correlate endpoint and file telemetry before impact"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Backup",
         summary: "Backup catalog access anomaly observed before file-change burst",
@@ -634,7 +633,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["identity", "privilege"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Backup",
         summary: "Scheduled backup verification completed successfully",
@@ -661,7 +660,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Supply Chain Compromise": {
     family: "Supply Chain Compromise",
     titles: ["Supply Chain Trust Drift", "Vendor Update Review", "Third-Party Package Signal"],
-    briefings: [
+    missionBriefings: [
       "A trusted vendor workflow generated unusual package and build telemetry. Identify the clues that suggest supply-chain risk without assuming a real compromise.",
       "CI, package, and endpoint signals show a suspicious trust-chain change. Decide which events belong in the defensive incident story."
     ],
@@ -678,7 +677,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Notify application owners and preserve build logs"
     ],
     preventionLessons: ["Pin trusted dependencies", "Verify artifact provenance", "Monitor CI runner behavior"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "CI/CD",
         summary: "Build runner pulled a package outside the approved release window",
@@ -708,7 +707,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["repository", "supply-chain", "privilege"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "CI/CD",
         summary: "Nightly test workflow completed on an unrelated branch",
@@ -735,7 +734,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Spear-Phishing Campaign": {
     family: "Spear-Phishing Campaign",
     titles: ["Spear-Phishing Triage", "Targeted Email Investigation", "Mailbox Lure Review"],
-    briefings: [
+    missionBriefings: [
       "Mail and identity telemetry show a targeted message followed by suspicious account activity. Select the clues that prove the campaign path.",
       "A user received a convincing business-themed message, then several access signals shifted. Identify what matters and what is normal mailbox noise."
     ],
@@ -752,7 +751,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Coach users on reporting targeted messages"
     ],
     preventionLessons: ["Use phishing-resistant MFA", "Alert on mailbox rule changes", "Correlate mail clicks with identity telemetry"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "Mail Gateway",
         summary: "Targeted invoice-themed message reached the target inbox",
@@ -782,7 +781,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["mail", "post-login", "exfiltration"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "Mail Gateway",
         summary: "Bulk newsletter delivered to the marketing distribution list",
@@ -809,7 +808,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
   "Web API Exploitation": {
     family: "Web API Exploitation",
     titles: ["Web API Abuse Signal", "Public Endpoint Investigation", "API Rate Anomaly Review"],
-    briefings: [
+    missionBriefings: [
       "API gateway, identity, and application telemetry show unusual access to a public endpoint. Identify which events support abuse of the service.",
       "A public API generated a noisy request pattern with a few strong clues. Separate normal traffic from the defensive findings."
     ],
@@ -826,7 +825,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
       "Preserve application logs for the suspicious window"
     ],
     preventionLessons: ["Monitor API route baselines", "Alert on token error bursts", "Enforce least-privilege API scopes"],
-    keyEvents: [
+    threatLogs: [
       {
         source: "API Gateway",
         summary: "Request rate exceeded the endpoint baseline for a sensitive route",
@@ -856,7 +855,7 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["api", "waf", "network"]
       }
     ],
-    decoyEvents: [
+    backgroundNoise: [
       {
         source: "API Gateway",
         summary: "Health-check requests completed from the internal monitor",
@@ -879,8 +878,870 @@ const templates: Record<ScenarioFamily, ScenarioTemplate> = {
         tags: ["decoy", "cdn"]
       }
     ]
+  },
+  "Shadow Persistence": {
+    family: "Shadow Persistence",
+    titles: ["Shadow Persistence", "RDP Persistence Review", "Service Account Session Drift"],
+    missionBriefings: [
+      "Detect and trace an unauthorized RDP session involving the svc-sql-sync service account on NYC-PROD-DB01.",
+      "Service-account access, endpoint execution, outbound network telemetry, and group membership changes landed in the same window. Reconstruct the persistence path."
+    ],
+    targetUsers: ["svc-sql-sync"],
+    targetHosts: ["NYC-PROD-DB01"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic persistence emulator", "Service-account misuse training persona", "Lab-only RDP persistence actor"],
+    expectedFindings: [
+      "RDP session succeeded for the service account",
+      "Endpoint execution occurred after the remote session",
+      "Outbound command-and-control style connection aligned with the affected host",
+      "Privilege or persistence-related group membership changed"
+    ],
+    recommendedResponse: [
+      "Disable or rotate the affected service-account credential through approved procedure",
+      "Review RDP session origin and administrative access history",
+      "Audit group membership changes and rollback unauthorized additions",
+      "Preserve authentication, endpoint, identity, and network telemetry for the incident window"
+    ],
+    preventionLessons: [
+      "Restrict service accounts from interactive logon",
+      "Alert on RDP access by non-human identities",
+      "Monitor privileged group membership changes"
+    ],
+    threatLogs: [
+      {
+        source: "Auth",
+        summary: "RDP login succeeded from 10.0.42.15 for {user} on {host}",
+        plain_english: "A service account successfully opened a remote desktop session, which is unusual for this identity type.",
+        severity: "High",
+        tags: ["identity", "rdp", "remote-admin", "lateral-movement"],
+        source_ref: "MITRE T1021.001"
+      },
+      {
+        source: "Endpoint",
+        summary: "Encoded administrative shell telemetry observed after the RDP session on {host}",
+        plain_english: "The host recorded suspicious shell-style activity after the remote login. This is represented as inert training telemetry only.",
+        severity: "High",
+        tags: ["endpoint", "execution", "script", "process"],
+        source_ref: "MITRE T1059.001"
+      },
+      {
+        source: "Network",
+        summary: "Outbound connection from {host} to 194.26.135.8 matched command-channel style telemetry",
+        plain_english: "The host contacted an external IP after suspicious endpoint activity, increasing incident confidence.",
+        severity: "Critical",
+        tags: ["network", "egress", "c2", "exfiltration"],
+        source_ref: "MITRE T1071"
+      },
+      {
+        source: "Identity",
+        summary: "Privileged group membership modification recorded for {user}",
+        plain_english: "The account's permissions changed during the suspicious session window.",
+        severity: "Critical",
+        tags: ["identity", "privilege", "persistence"],
+        source_ref: "MITRE T1098"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "adm-jlawson completed an approved admin login from a managed workstation",
+        plain_english: "This is a normal administrator login and does not support the service-account persistence narrative.",
+        severity: "Low",
+        tags: ["decoy", "identity", "admin"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Windows Update service started on NYC-PROD-DB01 during the same maintenance window",
+        plain_english: "The update service start is expected maintenance activity, not suspicious execution evidence.",
+        severity: "Low",
+        tags: ["decoy", "patch", "endpoint"],
+        contextualize: false
+      },
+      {
+        source: "DNS",
+        summary: "Routine DNS queries to Microsoft update domains resolved successfully",
+        plain_english: "This is normal operating-system background traffic.",
+        severity: "Low",
+        tags: ["decoy", "dns", "baseline"],
+        contextualize: false
+      }
+    ]
+  },
+  "API Breach: Exfil Pulse": {
+    family: "API Breach: Exfil Pulse",
+    titles: ["API Breach: Exfil Pulse", "Authorization Bypass Exfil Review", "API Data Stream Investigation"],
+    missionBriefings: [
+      "Investigate 403 authorization bypasses on NYC-WEB-PROD-04 leading to a high-volume outbound data stream.",
+      "API authorization failures, service identity activity, backup discovery, and outbound transfer telemetry indicate a possible application-layer data exposure."
+    ],
+    targetUsers: ["web-api-service"],
+    targetHosts: ["NYC-WEB-PROD-04"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic API exfiltration emulator", "Application-layer data exposure persona", "Lab-only authorization abuse actor"],
+    expectedFindings: [
+      "API key exhaustion clustered around an internal users endpoint",
+      "Service identity access appeared from an unusual source",
+      "Discovery touched database backup paths",
+      "Large outbound transfer followed the discovery sequence"
+    ],
+    recommendedResponse: [
+      "Rotate affected API keys and review token scope",
+      "Inspect API gateway, cloud identity, endpoint, and network telemetry together",
+      "Restrict access to backup directories and validate retention policy",
+      "Review outbound destination controls and preserve packet metadata"
+    ],
+    preventionLessons: [
+      "Alert on authorization error bursts against sensitive API routes",
+      "Apply least-privilege service tokens",
+      "Monitor backup directory access and outbound transfer baselines"
+    ],
+    threatLogs: [
+      {
+        source: "Auth",
+        summary: "Failed API key exhaustion observed on /v1/internal/users for {user}",
+        plain_english: "A service identity generated repeated authorization failures against a sensitive internal API route.",
+        severity: "High",
+        tags: ["api", "identity", "credential-access"],
+        source_ref: "OWASP API authorization telemetry"
+      },
+      {
+        source: "Cloud",
+        summary: "Unusual source sign-in recorded for {user} before the API error burst",
+        plain_english: "The API service identity appeared from a source that does not match its normal baseline.",
+        severity: "High",
+        tags: ["cloud", "identity", "initial-access"],
+        source_ref: "MITRE T1078"
+      },
+      {
+        source: "Endpoint",
+        summary: "Discovery sweep of /var/www/db_backups/ observed on {host}",
+        plain_english: "The host touched database backup paths after suspicious API activity.",
+        severity: "Critical",
+        tags: ["endpoint", "discovery", "collection", "api"],
+        source_ref: "MITRE T1083"
+      },
+      {
+        source: "Network",
+        summary: "1.2GB outbound data transfer from {host} to 103.22.11.9 exceeded baseline",
+        plain_english: "A large outbound transfer occurred after sensitive-path discovery.",
+        severity: "Critical",
+        tags: ["network", "egress", "exfiltration", "api"],
+        source_ref: "MITRE T1041"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "API Gateway",
+        summary: "Health check heartbeat completed for /healthz on NYC-WEB-PROD-04",
+        plain_english: "This is expected availability monitoring and does not support the breach narrative.",
+        severity: "Low",
+        tags: ["decoy", "monitoring", "api"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "Routine token refresh completed for web-api-service through the approved identity provider",
+        plain_english: "This is normal token lifecycle activity.",
+        severity: "Low",
+        tags: ["decoy", "identity", "token"],
+        contextualize: false
+      },
+      {
+        source: "Application",
+        summary: "Log rotation event compressed yesterday's API logs on NYC-WEB-PROD-04",
+        plain_english: "This is expected operations hygiene and is not suspicious by itself.",
+        severity: "Low",
+        tags: ["decoy", "logging", "application"],
+        contextualize: false
+      }
+    ]
+  },
+  "Ransomware Stage: Alpha": {
+    family: "Ransomware Stage: Alpha",
+    titles: ["Ransomware Stage: Alpha", "Encryption Canary Review", "File Server Lockout Precursor"],
+    missionBriefings: [
+      "Identify early-stage file encryption canary tests on the NYC-FS-02 file server before a full-scale lockout.",
+      "File-server telemetry shows discovery, privilege request, canary rename activity, and attempted movement toward backups. Determine which clues indicate pre-impact staging."
+    ],
+    targetUsers: ["local-admin-svc"],
+    targetHosts: ["NYC-FS-02"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic ransomware staging emulator", "Pre-impact lockout training persona", "Lab-only file encryption actor"],
+    expectedFindings: [
+      "High-frequency directory listing occurred in archival shares",
+      "Backup-related privilege request appeared for a local admin service account",
+      "Canary file rename pattern indicated encryption testing",
+      "Lateral connection attempt reached toward the backup node"
+    ],
+    recommendedResponse: [
+      "Isolate the affected file server according to response procedure",
+      "Validate backup integrity and restrict backup-node access",
+      "Review privilege use and disable unnecessary service-account access",
+      "Preserve file rename, endpoint, authentication, and lateral-connection telemetry"
+    ],
+    preventionLessons: [
+      "Alert on file rename bursts and canary extension changes",
+      "Restrict backup privileges to approved maintenance windows",
+      "Monitor lateral movement attempts toward backup infrastructure"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "High-frequency directory listing in archival shares observed on {host}",
+        plain_english: "The file server was rapidly enumerating archive folders, which can precede collection or impact behavior.",
+        severity: "High",
+        tags: ["endpoint", "discovery", "fileshare"],
+        source_ref: "MITRE T1083"
+      },
+      {
+        source: "Auth",
+        summary: "{user} requested SeBackupPrivilege on {host}",
+        plain_english: "A service account requested backup-level privilege during the suspicious window.",
+        severity: "Critical",
+        tags: ["identity", "privilege", "backup"],
+        source_ref: "MITRE T1490"
+      },
+      {
+        source: "Endpoint",
+        summary: "Canary encryption test renamed 500+ files to .crypt on {host}",
+        plain_english: "A high-volume file rename pattern resembles early impact staging in this synthetic training case.",
+        severity: "Critical",
+        tags: ["endpoint", "execution", "ransomware", "encryption-test", "impact-prevention"],
+        source_ref: "MITRE T1486"
+      },
+      {
+        source: "Network",
+        summary: "Attempted lateral connection from {host} to internal backup node NYC-BKP-01",
+        plain_english: "The affected file server attempted to reach backup infrastructure during the suspicious sequence.",
+        severity: "High",
+        tags: ["network", "lateral-movement", "backup", "east-west"],
+        source_ref: "MITRE T1021"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Search",
+        summary: "Search indexing catalog refresh scanned user home directories on NYC-FS-02",
+        plain_english: "Indexing activity is normal file-server background behavior and should not be selected.",
+        severity: "Low",
+        tags: ["decoy", "indexing", "fileshare"],
+        contextualize: false
+      },
+      {
+        source: "NTP",
+        summary: "NTP time synchronization completed successfully for NYC-FS-02",
+        plain_english: "Time synchronization is normal infrastructure activity.",
+        severity: "Low",
+        tags: ["decoy", "ntp", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "Routine user login completed from a managed workstation during business hours",
+        plain_english: "This is ordinary user access and does not support the ransomware staging narrative.",
+        severity: "Low",
+        tags: ["decoy", "identity", "baseline"],
+        contextualize: false
+      }
+    ]
+  },
+  "Insider Leak: Departure": {
+    family: "Insider Leak: Departure",
+    titles: ["Insider Threat: The Departure", "Departure Data Review", "High-Privilege Exit Investigation"],
+    missionBriefings: [
+      "A senior engineer has submitted their resignation. Shortly after, the Data Loss Prevention system flagged an unusual volume of archive files being moved to a personal cloud storage mount. The user claims they are just cleaning up personal files, but the file names suggest proprietary project data. Determine whether this is standard cleanup or coordinated data theft.",
+      "Monitor a high-privilege user's activity following a formal resignation notice. Separate routine offboarding activity from archive creation, DLP interference, and outbound transfer telemetry."
+    ],
+    operationalGuidance: [
+      "This is a behavioral hunt. Look for creation of .zip or .7z archives followed by outbound web traffic to non-corporate cloud domains. Check whether the user is bypassing standard VPN expectations."
+    ],
+    targetUsers: ["j-vazquez"],
+    targetHosts: ["NYC-HQ-WKST-22"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic insider-risk persona", "Departure data-handling emulator", "Lab-only offboarding risk actor"],
+    expectedFindings: [
+      "Large archive was created on the endpoint after the resignation trigger",
+      "DLP service disablement was attempted by the target user",
+      "Outbound transfer to personal cloud storage followed archive creation",
+      "Automated lockout happened after the suspicious sequence"
+    ],
+    recommendedResponse: [
+      "Preserve DLP, endpoint, network, and identity telemetry for the offboarding window",
+      "Review approved data-retention and personal-file cleanup exceptions",
+      "Validate whether the archive contains proprietary project data",
+      "Coordinate account lockout review with HR, legal, and security leadership"
+    ],
+    preventionLessons: [
+      "Monitor archive creation by high-privilege users during offboarding",
+      "Alert on DLP service tampering attempts",
+      "Inspect large transfers to personal cloud destinations"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "7zip.exe created Project_Zephyr_Complete.7z, 4.2GB, on {host}",
+        plain_english: "The target user created a large archive whose name suggests proprietary project data.",
+        severity: "Medium",
+        tags: ["endpoint", "collection", "staging", "fileshare"],
+        source_ref: "MITRE T1560"
+      },
+      {
+        source: "Auth",
+        summary: "{user} attempted to disable the DLP agent service",
+        plain_english: "The user tried to interfere with a monitoring control during the suspicious window.",
+        severity: "High",
+        tags: ["identity", "privilege", "dlp", "defense-control"],
+        source_ref: "MITRE T1078.003"
+      },
+      {
+        source: "Network",
+        summary: "Outbound pulse: 4GB transfer from {host} to personal cloud storage over HTTPS",
+        plain_english: "A large outbound transfer followed archive creation and DLP tampering.",
+        severity: "Critical",
+        tags: ["network", "egress", "exfiltration", "cloud-transfer"],
+        source_ref: "MITRE T1537"
+      },
+      {
+        source: "Identity",
+        summary: "Automated system lockout triggered for account {user}",
+        plain_english: "Automated controls responded after the risky sequence reached policy threshold.",
+        severity: "Low",
+        tags: ["identity", "response", "policy"],
+        source_ref: "Defensive control telemetry"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "s-choi successful login to NYC-HQ-WKST-15",
+        plain_english: "Another user's normal workstation login is unrelated to the target user's behavior.",
+        severity: "Low",
+        tags: ["decoy", "identity", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Chrome downloaded Resignation_Policy.pdf",
+        plain_english: "Policy-document access is expected offboarding background activity.",
+        severity: "Low",
+        tags: ["decoy", "browser", "offboarding"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "200MB video stream detected from NYC-HQ-WKST-22",
+        plain_english: "Streaming traffic is background noise and does not prove data theft.",
+        severity: "Low",
+        tags: ["decoy", "network", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "Corporate OneDrive sync completed successfully",
+        plain_english: "Approved corporate storage sync is not the same as the personal cloud transfer.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "storage"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "Document Exit_Interview_Form.docx sent to Printer-SOC-01",
+        plain_english: "Printing an exit form is normal offboarding activity.",
+        severity: "Low",
+        tags: ["decoy", "printer", "offboarding"],
+        contextualize: false
+      }
+    ]
+  },
+  "Zero-Day: Log-Pulse RCE": {
+    family: "Zero-Day: Log-Pulse RCE",
+    titles: ["Zero-Day: Log-Pulse RCE", "Log Management RCE Attempt", "Log-Pulse Shell Investigation"],
+    missionBriefings: [
+      "We've detected a series of malformed JNDI-style lookups in web server logs. Within seconds of these hits, a new listener was established on the logging server. It appears an adversary is exploiting a synthetic logging-framework weakness to spawn an administrative shell pattern. Find the shell process and stop the connection before activity pivots toward the domain controller.",
+      "Neutralize a Remote Code Execution attempt hitting the log management server. Correlate malformed inbound web telemetry, shell-like process activity, discovery, and local-console access."
+    ],
+    operationalGuidance: [
+      "RCE moves fast. Correlate the admin shell signal with the inbound pulse on the web interface. If a web service spawns shell-like process telemetry, treat the sequence as confirmed compromise in this synthetic lab."
+    ],
+    targetUsers: ["log-service-daemon"],
+    targetHosts: ["CANTON-LOG-SVR-01"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic RCE response emulator", "Log-service exploitation training persona", "Lab-only public-service intrusion actor"],
+    expectedFindings: [
+      "Malformed inbound request pattern hit the logging interface",
+      "Log service spawned sanitized shell-like process telemetry",
+      "Discovery scan originated from the logging server",
+      "Privileged local-console access appeared after shell activity"
+    ],
+    recommendedResponse: [
+      "Isolate the log management server from outbound and east-west traffic",
+      "Preserve web, process, and network telemetry for the affected window",
+      "Rotate log-service credentials and review privileged local-console access",
+      "Validate patch status and disable vulnerable logging exposure through approved change control"
+    ],
+    preventionLessons: [
+      "Alert on web services spawning shell-like child processes",
+      "Correlate malformed inbound strings with process and network telemetry",
+      "Segment logging infrastructure from domain-controller pathways"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "Malformed JNDI-style lookup marker detected in HTTP header from reserved lab IP 198.51.100.42",
+        plain_english: "The web-facing service received suspicious malformed input. The exact exploit syntax is intentionally omitted.",
+        severity: "High",
+        tags: ["network", "rce", "inbound", "api"],
+        source_ref: "MITRE T1210"
+      },
+      {
+        source: "Endpoint",
+        summary: "{user} spawned sanitized shell-like telemetry on {host}; command content redacted for safety",
+        plain_english: "A web or log service launching shell-like activity is a high-confidence compromise signal.",
+        severity: "Critical",
+        tags: ["endpoint", "execution", "script", "unix-shell", "process"],
+        source_ref: "MITRE T1059.004"
+      },
+      {
+        source: "Discovery",
+        summary: "Discovery sweep: internal subnet scan initiated from {host}",
+        plain_english: "The affected server began looking across the internal network after the shell signal.",
+        severity: "High",
+        tags: ["discovery", "network", "lateral-movement"],
+        source_ref: "MITRE T1046"
+      },
+      {
+        source: "Auth",
+        summary: "New source sign-in: root access from {host} local console",
+        plain_english: "Privileged local access appeared after the suspicious process activity.",
+        severity: "Critical",
+        tags: ["identity", "initial-access", "privilege", "local-account"],
+        source_ref: "MITRE T1078.003"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "syslog-ng rotated internal message buffers",
+        plain_english: "Log rotation is routine maintenance and not a compromise clue.",
+        severity: "Low",
+        tags: ["decoy", "logging", "endpoint"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "ICMP echo request to 10.0.0.1 gateway successful",
+        plain_english: "A gateway heartbeat is normal infrastructure noise.",
+        severity: "Low",
+        tags: ["decoy", "heartbeat", "network"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "CloudWatch ingested 450 new events from log-service",
+        plain_english: "Cloud log ingestion is expected monitoring behavior.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "logging"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "Validated JWT for admin console access",
+        plain_english: "A valid token check alone does not prove the RCE path.",
+        severity: "Low",
+        tags: ["decoy", "identity", "token"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "/tmp directory scrubbed by daily cron job",
+        plain_english: "Scheduled cleanup is normal host maintenance.",
+        severity: "Low",
+        tags: ["decoy", "cron", "endpoint"],
+        contextualize: false
+      }
+    ]
+  },
+  "Supply Chain: Poisoned Update": {
+    family: "Supply Chain: Poisoned Update",
+    titles: ["Supply Chain: Poisoned Update", "Trusted Update Anomaly", "Financial App Update Investigation"],
+    missionBriefings: [
+      "Our financial reporting app recently updated to v4.2.1. While the digital signature is valid, the app has started making connections to a dynamic DNS address in a region the organization does not normally use. This resembles a poisoned update where a vendor build pipeline may have been compromised. Identify how the software maintains persistence.",
+      "Investigate an anomalous process originating from a trusted software update. Focus on whether signed software activity diverges from expected update behavior."
+    ],
+    operationalGuidance: [
+      "Trust nothing. Focus on privilege attempts and discovery sweeps. Supply-chain attacks often hide in plain sight by using legitimate software names to mask malicious activity."
+    ],
+    targetUsers: ["SYSTEM"],
+    targetHosts: ["NYC-FIN-APP-09"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic supply-chain risk emulator", "Trusted-update anomaly persona", "Lab-only poisoned update actor"],
+    expectedFindings: [
+      "Trusted updater executed with high privilege",
+      "Registry run key was modified for persistence",
+      "Financial documents were enumerated after the update",
+      "Encrypted outbound transfer followed discovery"
+    ],
+    recommendedResponse: [
+      "Quarantine the affected application host according to procedure",
+      "Preserve updater binary metadata, registry telemetry, and network logs",
+      "Review vendor update provenance and suspend the update channel if authorized",
+      "Audit financial data access and validate whether sensitive files left the environment"
+    ],
+    preventionLessons: [
+      "Monitor signed software for unusual persistence changes",
+      "Alert on trusted apps accessing unexpected data paths",
+      "Validate vendor-update behavior against network baselines"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "FinReporter_Update.exe executed with SYSTEM privileges on {host}",
+        plain_english: "A trusted updater ran with high privilege. By itself this can be normal, but the later sequence makes it relevant.",
+        severity: "Low",
+        tags: ["endpoint", "supply-chain", "package", "execution"],
+        source_ref: "MITRE T1195.002"
+      },
+      {
+        source: "Identity",
+        summary: "FinReporter.exe modified HKLM Run key persistence configuration on {host}",
+        plain_english: "The application created or changed an auto-start location used for persistence.",
+        severity: "High",
+        tags: ["identity", "privilege", "persistence", "registry"],
+        source_ref: "MITRE T1547.001"
+      },
+      {
+        source: "Discovery",
+        summary: "Discovery sweep: search for *.xlsx and *.pdf in D:\\Financial_Data\\ on {host}",
+        plain_english: "The process searched financial documents after the trusted update ran.",
+        severity: "Medium",
+        tags: ["discovery", "fileshare", "collection", "supply-chain"],
+        source_ref: "MITRE T1083"
+      },
+      {
+        source: "Network",
+        summary: "Outbound pulse: 800MB encrypted transfer from {host} to update-srv-cdn3.test",
+        plain_english: "An encrypted outbound transfer followed financial data discovery. The destination is synthetic lab-only telemetry.",
+        severity: "Critical",
+        tags: ["network", "egress", "exfiltration", "supply-chain"],
+        source_ref: "MITRE T1041"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "MSSQLServer service started successfully",
+        plain_english: "A normal database service start is not evidence of poisoned update behavior.",
+        severity: "Low",
+        tags: ["decoy", "service", "database"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Clock synchronized with time.windows.com",
+        plain_english: "Time synchronization is routine host activity.",
+        severity: "Low",
+        tags: ["decoy", "ntp", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Windows Defender scheduled scan completed with no detections",
+        plain_english: "A clean scheduled scan is background context, not a supply-chain clue.",
+        severity: "Low",
+        tags: ["decoy", "av", "endpoint"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "Kerberos TGS request for CIFS/NYC-FILE-SVR",
+        plain_english: "Routine Kerberos ticket activity is not part of the updater sequence.",
+        severity: "Low",
+        tags: ["decoy", "identity", "kerberos"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "Automated cloud backup of database logs initiated",
+        plain_english: "Approved backup activity should not be confused with unexpected outbound transfer.",
+        severity: "Low",
+        tags: ["decoy", "backup", "cloud"],
+        contextualize: false
+      }
+    ]
+  },
+  "Identity: Session Hijack": {
+    family: "Identity: Session Hijack",
+    titles: ["Identity: Session Hijack", "Cloud Admin Session Review", "Cookie Replay Investigation"],
+    missionBriefings: [
+      "Our identity provider flagged a successful cloud console login for a senior administrator from a region outside standard operations. MFA was active, but no challenge was issued, suggesting potential session-cookie theft. Identify the source of the cookie exfiltration and determine which administrative actions occurred post-hijack.",
+      "Trace a session hijacking event targeting a high-privilege cloud administrator account. Correlate browser data access, MFA bypass telemetry, policy modification, and outbound management traffic."
+    ],
+    operationalGuidance: [
+      "Correlate the browser signal with the MFA bypass event. Look for browser-based credential-store access on the management gateway shortly before the anomalous login."
+    ],
+    targetUsers: ["cloud-admin-01"],
+    targetHosts: ["NYC-MGMT-GW"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic cloud session hijack emulator", "Cloud-admin misuse training persona", "Lab-only cookie replay actor"],
+    expectedFindings: [
+      "Browser-related process accessed local credential-store telemetry",
+      "Cloud session was established through an existing token without MFA challenge",
+      "Conditional Access policy was modified by the administrator identity",
+      "Management traffic reached a non-standard cloud endpoint"
+    ],
+    recommendedResponse: [
+      "Revoke active sessions and rotate credentials for the affected cloud administrator",
+      "Review Conditional Access policy changes and restore authorized baseline",
+      "Inspect browser and endpoint telemetry on the management gateway",
+      "Preserve identity-provider, endpoint, cloud audit, and network logs"
+    ],
+    preventionLessons: [
+      "Alert on MFA-skipped sessions for privileged accounts",
+      "Monitor browser credential-store access on admin workstations",
+      "Require reauthentication for sensitive policy changes"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "Browser-related process accessed local credential-store telemetry on {host}; content sanitized",
+        plain_english: "The management gateway recorded browser data access shortly before the unusual cloud session.",
+        severity: "High",
+        tags: ["endpoint", "credential-access", "browser-data", "collection"],
+        source_ref: "MITRE T1539"
+      },
+      {
+        source: "Auth",
+        summary: "Cloud session established for {user} via existing session token; no MFA challenge required",
+        plain_english: "A privileged cloud session opened without the expected MFA prompt because an existing session artifact was used.",
+        severity: "Critical",
+        tags: ["identity", "cloud", "session-hijack", "credential-access"],
+        source_ref: "MITRE T1550.004"
+      },
+      {
+        source: "Cloud",
+        summary: "Conditional Access policy Global_MFA_Enforce modified by {user}",
+        plain_english: "A privileged identity changed MFA enforcement policy after the suspicious session began.",
+        severity: "Critical",
+        tags: ["cloud", "privilege", "defense-control", "policy-change"],
+        source_ref: "MITRE T1562.001"
+      },
+      {
+        source: "Network",
+        summary: "Management traffic pulse from {host} to non-standard cloud endpoint; destination redacted",
+        plain_english: "The management gateway communicated with an unusual cloud endpoint during the suspicious session window.",
+        severity: "Medium",
+        tags: ["network", "egress", "cloud", "c2"],
+        source_ref: "MITRE T1071.001"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "adm-skeller successful login to NYC-OFFICE-04",
+        plain_english: "This is a normal administrator login on a different workstation.",
+        severity: "Low",
+        tags: ["decoy", "identity", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Microsoft Edge successfully updated to latest version",
+        plain_english: "Browser auto-update activity is expected endpoint maintenance.",
+        severity: "Low",
+        tags: ["decoy", "browser", "patch"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "VPN gateway health check successful",
+        plain_english: "Gateway heartbeat telemetry is normal infrastructure noise.",
+        severity: "Low",
+        tags: ["decoy", "heartbeat", "network"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "Automated tag assignment completed for 50 production instances",
+        plain_english: "Automated resource tagging is unrelated cloud operations activity.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "automation"],
+        contextualize: false
+      }
+    ]
+  },
+  "Stealth: Resource Exhaustion": {
+    family: "Stealth: Resource Exhaustion",
+    titles: ["Stealth: Resource Exhaustion", "Cryptojacking Resource Review", "Development Server CPU Pulse"],
+    missionBriefings: [
+      "Performance monitors on a Linux development node show sustained 90 percent CPU utilization during off-hours. No scheduled build jobs were active. Initial inspection suggests a hidden process is consuming resources and communicating with a resource pool. Find the persistence mechanism and source of the initial script execution.",
+      "Identify unauthorized resource hijacking behavior running on a development server. Correlate CPU telemetry, scheduled persistence, and outbound pool-sync traffic."
+    ],
+    operationalGuidance: [
+      "Look for the CPU pulse in telemetry and correlate it with outbound activity on non-standard ports. Check for unusual cron jobs or systemd-style persistence signals."
+    ],
+    targetUsers: ["dev-user-05"],
+    targetHosts: ["CANTON-DEV-LNX-03"],
+    defaultDifficulty: "Beginner",
+    attackerProfiles: ["Synthetic resource-hijacking emulator", "Development-server abuse training persona", "Lab-only cryptomining pattern actor"],
+    expectedFindings: [
+      "CPU utilization exceeded the development-server baseline for hours",
+      "New scheduled task persisted under the developer account",
+      "Outbound pool-sync traffic appeared on a non-standard port"
+    ],
+    recommendedResponse: [
+      "Terminate the unauthorized process through approved endpoint response procedures",
+      "Remove unauthorized scheduled-task persistence",
+      "Review shell history and deployment telemetry for the affected user",
+      "Block non-standard pool-sync destination traffic"
+    ],
+    preventionLessons: [
+      "Alert on sustained off-hours CPU spikes",
+      "Monitor new cron entries for developer accounts",
+      "Baseline outbound traffic from development servers"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "CPU utilization exceeded 90 percent for 4+ hours on {host}; process content sanitized",
+        plain_english: "The development node consumed far more compute than expected while no build job was active.",
+        severity: "Medium",
+        tags: ["endpoint", "resource-hijacking", "execution"],
+        source_ref: "MITRE T1496"
+      },
+      {
+        source: "Endpoint",
+        summary: "New crontab entry added for {user}: daily script execution metadata only",
+        plain_english: "A new scheduled task created persistence for recurring execution.",
+        severity: "High",
+        tags: ["endpoint", "scheduled-task", "persistence", "execution"],
+        source_ref: "MITRE T1053.003"
+      },
+      {
+        source: "Network",
+        summary: "Persistent connection from {host} to remote resource pool on port 14444",
+        plain_english: "The host maintained a non-standard outbound connection associated with resource pool synchronization.",
+        severity: "High",
+        tags: ["network", "egress", "resource-hijacking", "c2"],
+        source_ref: "MITRE T1071.001"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "logrotate.service completed for system logs",
+        plain_english: "Log rotation is normal Linux maintenance.",
+        severity: "Low",
+        tags: ["decoy", "logging", "endpoint"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "dev-lead-01 successful SSH login to CANTON-DEV-LNX-01",
+        plain_english: "Another developer logged into a different host and is not part of this case.",
+        severity: "Low",
+        tags: ["decoy", "identity", "ssh"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "DNS query for github.com completed successfully",
+        plain_english: "Developer tooling commonly reaches GitHub and this query is not suspicious by itself.",
+        severity: "Low",
+        tags: ["decoy", "dns", "developer"],
+        contextualize: false
+      }
+    ]
+  },
+  "Recon: Password Spraying": {
+    family: "Recon: Password Spraying",
+    titles: ["Recon: Password Spraying", "VPN Auth Spray Review", "Password Spray Pulse"],
+    missionBriefings: [
+      "Security logs for the VPN gateway show a high volume of authentication failures across hundreds of unique usernames within a short window. Each username is targeted only once or twice, suggesting an attempt to bypass traditional lockout policies. Identify the spray source and confirm whether any accounts were compromised.",
+      "Detect a broad-scale password spraying attempt targeting the corporate VPN gateway. Correlate failure volume, unusual success, and VPN session establishment."
+    ],
+    operationalGuidance: [
+      "This is a pattern-matching task. Look for the auth fail pulse across identity logs. A single auth success following a long string of failures from the same source is the key evidence."
+    ],
+    targetUsers: ["multiple.users", "v-jackson"],
+    targetHosts: ["NYC-VPN-GATEWAY"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic password-spray emulator", "VPN authentication training persona", "Lab-only credential pressure actor"],
+    expectedFindings: [
+      "Large failure burst targeted many unique usernames from one source",
+      "One account succeeded after the spray pattern",
+      "VPN session started for the successful account from the same suspicious source"
+    ],
+    recommendedResponse: [
+      "Disable or reset the successfully accessed account according to procedure",
+      "Review VPN source IP reputation and block according to policy",
+      "Search for additional successful sessions from the same source",
+      "Tune identity detection for low-and-wide password spraying"
+    ],
+    preventionLessons: [
+      "Alert on distributed username failure patterns",
+      "Require MFA for VPN access",
+      "Monitor single successes after broad failure bursts"
+    ],
+    threatLogs: [
+      {
+        source: "Auth",
+        summary: "250+ failed VPN login attempts across unique usernames from a single source",
+        plain_english: "Many accounts failed only once or twice from the same source, which fits password spraying.",
+        severity: "High",
+        tags: ["identity", "credential-access", "password-spray"],
+        source_ref: "MITRE T1110.003",
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "Successful login for account v-jackson after 50+ failures from the spray source",
+        plain_english: "One account successfully authenticated after the broad failure pattern.",
+        severity: "Critical",
+        tags: ["identity", "credential-access", "initial-access", "password-spray"],
+        source_ref: "MITRE T1110.003",
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "New VPN session established for v-jackson from the spray source",
+        plain_english: "The successful login produced an active VPN session from the suspicious source.",
+        severity: "High",
+        tags: ["network", "vpn", "initial-access", "remote-access"],
+        source_ref: "MITRE T1133",
+        contextualize: false
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "s-mitchell successful VPN login from known domestic IP",
+        plain_english: "This known-source VPN login is normal baseline activity.",
+        severity: "Low",
+        tags: ["decoy", "identity", "vpn"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Time sync successful with NYC-DC-01",
+        plain_english: "Domain time synchronization is normal infrastructure behavior.",
+        severity: "Low",
+        tags: ["decoy", "ntp", "baseline"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "User k-lee successfully updated expired password",
+        plain_english: "An approved password change is not part of the spray source pattern.",
+        severity: "Low",
+        tags: ["decoy", "identity", "password-change"],
+        contextualize: false
+      }
+    ]
   }
 };
+
+export const scenarioFamilies = Object.keys(scenarioPackages) as ScenarioFamily[];
 
 function hashSeed(seed: string) {
   let hash = 2166136261;
@@ -971,7 +1832,46 @@ function confidenceForSeverity(severity: ScenarioCase["severity"], random: () =>
   return min + Math.floor(random() * (max - min + 1));
 }
 
-function sourceRefForEvent(family: ScenarioFamily, event: EventTemplate, isKeyEvidence: boolean) {
+function formatEventSummary(event: ScenarioEventPackage, targetUser: string, targetHost: string) {
+  if (event.contextualize === false) {
+    return event.summary;
+  }
+
+  if (event.summary.includes("{user}") || event.summary.includes("{host}")) {
+    return event.summary.replaceAll("{user}", targetUser).replaceAll("{host}", targetHost);
+  }
+
+  return `${event.summary} for ${targetUser}`;
+}
+
+function backgroundNoiseCount({
+  difficulty,
+  randomness,
+  procedural,
+  availableEvents
+}: {
+  difficulty: ScenarioDifficulty;
+  randomness: ScenarioRandomness;
+  procedural: boolean;
+  availableEvents: number;
+}) {
+  const baseByDifficulty: Record<ScenarioDifficulty, number> = {
+    Beginner: 2,
+    Intermediate: 4,
+    Expert: 6
+  };
+  const randomnessAdjustment: Record<ScenarioRandomness, number> = {
+    Low: -1,
+    Medium: 0,
+    "Chaos Lab": 2
+  };
+  const proceduralAdjustment = procedural ? 0 : 1;
+  const targetCount = baseByDifficulty[difficulty] + randomnessAdjustment[randomness] + proceduralAdjustment;
+
+  return Math.max(1, Math.min(availableEvents, targetCount));
+}
+
+function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, isKeyEvidence: boolean) {
   if (event.source_ref) {
     return event.source_ref;
   }
@@ -983,14 +1883,22 @@ function sourceRefForEvent(family: ScenarioFamily, event: EventTemplate, isKeyEv
   const tags = new Set(event.tags);
 
   if (tags.has("credential-access")) return "MITRE T1110";
+  if (tags.has("rdp")) return "MITRE T1021.001";
   if (tags.has("initial-access")) return "MITRE T1078";
   if (tags.has("execution") || tags.has("script")) return "MITRE T1059";
+  if (tags.has("rce")) return "MITRE T1210";
   if (tags.has("discovery")) return "MITRE T1083";
   if (tags.has("exfiltration") || tags.has("egress")) return "MITRE T1041";
+  if (tags.has("c2")) return "MITRE T1071";
   if (tags.has("sharing") || tags.has("collection")) return "MITRE T1530";
   if (tags.has("cloud") || tags.has("post-login")) return "MITRE T1078";
   if (tags.has("remote-admin") || tags.has("east-west") || tags.has("lateral-movement")) return "MITRE T1021";
+  if (tags.has("persistence")) return "MITRE T1098";
+  if (tags.has("cloud-transfer")) return "MITRE T1537";
+  if (tags.has("registry")) return "MITRE T1547.001";
   if (family === "Ransomware Precursor" && tags.has("backup")) return "MITRE T1490";
+  if (family === "Ransomware Stage: Alpha" && tags.has("backup")) return "MITRE T1490";
+  if (family === "Ransomware Stage: Alpha") return "MITRE T1486";
   if (family === "Ransomware Precursor") return "MITRE T1486";
   if (tags.has("supply-chain") || tags.has("package")) return "MITRE T1195";
   if (tags.has("phishing") || tags.has("email")) return "MITRE T1566";
@@ -1013,7 +1921,16 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Ransomware Precursor": 1,
     "Supply Chain Compromise": 1,
     "Spear-Phishing Campaign": 0,
-    "Web API Exploitation": 3
+    "Web API Exploitation": 3,
+    "Shadow Persistence": 2,
+    "API Breach: Exfil Pulse": 4,
+    "Ransomware Stage: Alpha": 1,
+    "Insider Leak: Departure": 4,
+    "Zero-Day: Log-Pulse RCE": 1,
+    "Supply Chain: Poisoned Update": 1,
+    "Identity: Session Hijack": 0,
+    "Stealth: Resource Exhaustion": 1,
+    "Recon: Password Spraying": 0
   };
 
   return indexByFamily[family];
@@ -1023,11 +1940,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application")) indexes.add(1);
-  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository")) indexes.add(2);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change")) indexes.add(2);
   if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf")) indexes.add(4);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }
@@ -1055,7 +1972,7 @@ function buildCaseChartData(family: ScenarioFamily, telemetryEvents: EvidenceEve
 }
 export function generateScenarioCase({
   family = "Credential Compromise",
-  difficulty = "Beginner",
+  difficulty,
   randomness = "Medium",
   trainingMode = "Guided",
   seed = Date.now().toString(),
@@ -1072,21 +1989,33 @@ export function generateScenarioCase({
   procedural?: boolean;
   realtime?: boolean;
 } = {}): ScenarioCase {
-  const random = makeRandom(`${seed}:${family}:${difficulty}:${randomness}:${trainingMode}:${caseNumber}`);
-  const template = templates[family];
-  const targetUser = pick(users, random);
-  const targetHost = pick(hosts, random);
-  const severity = severityForDifficulty(difficulty, random);
+  const scenarioPackage = scenarioPackages[family];
+  const resolvedDifficulty = difficulty ?? scenarioPackage.defaultDifficulty ?? "Beginner";
+  const random = makeRandom(`${seed}:${family}:${resolvedDifficulty}:${randomness}:${trainingMode}:${caseNumber}`);
+  const targetUser = pick(scenarioPackage.targetUsers ?? users, random);
+  const targetHost = pick(scenarioPackage.targetHosts ?? hosts, random);
+  const severity = severityForDifficulty(resolvedDifficulty, random);
   const confidence = confidenceForSeverity(severity, random);
-  const decoyCount = procedural ? 3 : randomness === "Low" ? 2 : randomness === "Medium" ? 3 : 5;
-  const keyCount = procedural ? Math.min(template.keyEvents.length, 3 + Math.floor(random() * 2)) : template.keyEvents.length;
-  const selectedKeyEvents = procedural ? shuffle(template.keyEvents, random).slice(0, keyCount) : template.keyEvents;
-  const decoyPool = procedural ? [...template.decoyEvents, ...commonDecoyEvents] : template.decoyEvents;
-  const keyEvents = selectedKeyEvents.map((event, index) => ({ event, key: true, index }));
-  const decoyEvents = shuffle(decoyPool, random).slice(0, decoyCount).map((event, index) => ({ event, key: false, index }));
+  const backgroundPool = procedural || resolvedDifficulty !== "Beginner" || randomness === "Chaos Lab"
+    ? [...scenarioPackage.backgroundNoise, ...sharedBackgroundNoise]
+    : scenarioPackage.backgroundNoise;
+  const noiseCount = backgroundNoiseCount({
+    difficulty: resolvedDifficulty,
+    randomness,
+    procedural,
+    availableEvents: backgroundPool.length
+  });
+  const threatLogCount = procedural
+    ? Math.min(scenarioPackage.threatLogs.length, 3 + Math.floor(random() * 2))
+    : scenarioPackage.threatLogs.length;
+  const selectedThreatLogs = procedural
+    ? shuffle(scenarioPackage.threatLogs, random).slice(0, threatLogCount)
+    : scenarioPackage.threatLogs;
+  const threatEvents = selectedThreatLogs.map((event, index) => ({ event, key: true, index }));
+  const noiseEvents = shuffle(backgroundPool, random).slice(0, noiseCount).map((event, index) => ({ event, key: false, index }));
   const rawEvents = procedural || trainingMode === "Blind Investigation" || randomness === "Chaos Lab"
-    ? shuffle([...keyEvents, ...decoyEvents], random)
-    : [...keyEvents, ...decoyEvents];
+    ? shuffle([...threatEvents, ...noiseEvents], random)
+    : [...threatEvents, ...noiseEvents];
   const timestamps = realtime ? realtimeTimestamps(rawEvents.length, random) : null;
   const caseId = `ADV-2026-${caseNumber.toString().padStart(3, "0")}`;
 
@@ -1094,7 +2023,7 @@ export function generateScenarioCase({
     event_id: `evt-${(index + 1).toString().padStart(3, "0")}`,
     timestamp: timestamps?.[index] ?? formatClock(30 + index * (randomness === "Chaos Lab" ? 17 : 12)),
     source: event.source,
-    summary: `${event.summary} for ${targetUser}`,
+    summary: formatEventSummary(event, targetUser, targetHost),
     plain_english: event.plain_english,
     severity: event.severity,
     user: targetUser,
@@ -1111,22 +2040,28 @@ export function generateScenarioCase({
 
   return {
     case_id: caseId,
-    title: pick(template.titles, random),
+    title: pick(scenarioPackage.titles, random),
     scenario_family: family,
-    difficulty,
+    difficulty: resolvedDifficulty,
     severity,
     target_user: targetUser,
     target_host: targetHost,
-    attacker_profile: pick(template.attackerProfiles, random),
+    attacker_profile: pick(scenarioPackage.attackerProfiles, random),
     false_lead: falseLead,
     confidence,
-    case_briefing: pick(template.briefings, random),
+    case_briefing: pick(scenarioPackage.missionBriefings, random),
+    operational_guidance: pick(
+      scenarioPackage.operationalGuidance ?? [
+        "Filter high-fidelity signals from baseline background noise to reconstruct the attack timeline and identify the adversary's objective."
+      ],
+      random
+    ),
     telemetry_events: telemetryEvents,
     key_evidence_event_ids: keyEvidenceIds,
     decoy_event_ids: decoyIds,
-    expected_findings: template.expectedFindings,
-    recommended_response: template.recommendedResponse,
-    prevention_lessons: template.preventionLessons,
+    expected_findings: scenarioPackage.expectedFindings,
+    recommended_response: scenarioPackage.recommendedResponse,
+    prevention_lessons: scenarioPackage.preventionLessons,
     chartData
   };
 }
@@ -1191,8 +2126,8 @@ export function generateDailyThreatQueue(seed = new Date().toDateString()) {
     time: formatClock(30 + index * 105),
     case: generateScenarioCase({
       family,
-      difficulty: difficulties[index],
-      randomness: randomness[index],
+      difficulty: scenarioPackages[family].defaultDifficulty ?? difficulties[index % difficulties.length],
+      randomness: randomness[index % randomness.length],
       trainingMode: index >= 2 ? "Blind Investigation" : "Guided",
       seed: `${seed}:queue:${index}`,
       caseNumber: index + 1

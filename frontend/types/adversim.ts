@@ -105,7 +105,16 @@ export type ScenarioFamily =
   | "Ransomware Precursor"
   | "Supply Chain Compromise"
   | "Spear-Phishing Campaign"
-  | "Web API Exploitation";
+  | "Web API Exploitation"
+  | "Shadow Persistence"
+  | "API Breach: Exfil Pulse"
+  | "Ransomware Stage: Alpha"
+  | "Insider Leak: Departure"
+  | "Zero-Day: Log-Pulse RCE"
+  | "Supply Chain: Poisoned Update"
+  | "Identity: Session Hijack"
+  | "Stealth: Resource Exhaustion"
+  | "Recon: Password Spraying";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
@@ -142,6 +151,7 @@ export type ScenarioCase = {
   false_lead: string;
   confidence: number;
   case_briefing: string;
+  operational_guidance: string;
   telemetry_events: EvidenceEvent[];
   key_evidence_event_ids: string[];
   decoy_event_ids: string[];

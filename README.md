@@ -111,7 +111,7 @@ NEXT_PUBLIC_API_URL=https://your-backend-domain.onrender.com
 
 ## Simulation Flow
 
-The lab has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The current environment includes ten ready scenario families:
+The lab has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The current environment includes nineteen ready scenario packages:
 
 - Credential Compromise Chain
 - Insider Data Drift
@@ -123,14 +123,33 @@ The lab has two layers: Scenario Director for interactive investigation practice
 - Supply Chain Compromise
 - Spear-Phishing Campaign
 - Web API Exploitation
+- Shadow Persistence
+- API Breach: Exfil Pulse
+- Ransomware Stage: Alpha
+- Insider Leak: Departure
+- Zero-Day: Log-Pulse RCE
+- Supply Chain: Poisoned Update
+- Identity: Session Hijack
+- Stealth: Resource Exhaustion
+- Recon: Password Spraying
 
-Each scenario supports nine training profiles:
+Each scenario package supports adjustable difficulty and noise controls:
 
-- Clean / Low, Medium, High
-- Realistic / Low, Medium, High
-- Noisy / Low, Medium, High
+- Beginner, Intermediate, and Expert investigation modes
+- Low, Medium, and Chaos Lab background-noise injection
 
-That creates 90 guided lab runs across the ten scenario families. Duration controls pacing, not the incident type.
+That creates high-replay lab runs across the nineteen scenario packages. Duration controls pacing, not the incident type.
+
+## Scenario Package Model
+
+AdverSim scenarios are defined as data packages in `frontend/lib/scenario-director.ts`. Each package contains:
+
+- `missionBriefings`: analyst-facing case context
+- `threatLogs`: key telemetry clues that support the incident narrative
+- `backgroundNoise`: harmless events used to raise or lower investigation difficulty
+- `expectedFindings`, `recommendedResponse`, and `preventionLessons`: investigation goals and report guidance
+
+The Scenario Director reads the selected package, samples threat logs, injects background noise based on difficulty and randomness, recalculates dashboard charts, and builds the Evidence Board automatically. Adding a new synthetic incident means adding a new package entry, then the lab can stage it through the same telemetry, detection, timeline, and report flow.
 
 Main navigation:
 
@@ -144,4 +163,4 @@ Main navigation:
 
 ## Roadmap
 
-AdverSim v2.0 Roadmap: Future updates will transition from template-based incidents to LLM-Driven Scenario Generation, featuring integrated support for raw CTI feeds (Mandiant, CISA) and automated MITRE ATT&CK mapping for reactive defense training.
+AdverSim v2.0 Roadmap: Future updates will transition from package-based incidents to LLM-Driven Scenario Generation, featuring integrated support for raw CTI feeds (Mandiant, CISA) and automated MITRE ATT&CK mapping for reactive defense training.

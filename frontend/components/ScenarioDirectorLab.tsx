@@ -124,16 +124,21 @@ function EvidenceHintBubble({ hint, compact }: { hint: string; compact: boolean 
 const MISSION_BRIEFING_COPY =
   "Filter high-fidelity signals from baseline background noise to reconstruct the attack timeline and identify the adversary's objective.";
 
-function operationalGuidanceForDifficulty(difficulty: ScenarioDifficulty, trainingMode: TrainingMode) {
+function operationalGuidanceForDifficulty(caseFile: ScenarioCase, trainingMode: TrainingMode) {
+  const packageGuidance = caseFile.operational_guidance ?? MISSION_BRIEFING_COPY;
+  const difficulty = caseFile.difficulty;
+
   if (difficulty === "Expert") {
-    return "No hints provided. Severity and source tags are hidden. Trust your training and use the Dashboard Incident Heat chart to prioritize evidence.";
+    return `${packageGuidance} No hints provided. Severity and source tags are hidden. Trust your training and use the Dashboard Incident Heat chart to prioritize evidence.`;
   }
 
   if (difficulty === "Intermediate") {
-    return "Severity badges are hidden. Use the Dashboard Mapped Tactics chart to decide which event types deserve attention.";
+    return `${packageGuidance} Severity badges are hidden. Use the Dashboard Mapped Tactics chart to decide which event types deserve attention.`;
   }
 
-  return `Severity badges and ${trainingMode === "Guided" ? "plain-English hints" : "post-investigation hints"} are available. Select the events that support the incident narrative.`;
+  return `${packageGuidance} Severity badges and ${
+    trainingMode === "Guided" ? "plain-English hints" : "post-investigation hints"
+  } are available. Select the events that support the incident narrative.`;
 }
 
 function evidenceHintForDifficulty(event: EvidenceEvent, difficulty: ScenarioDifficulty, trainingMode: TrainingMode, debrief: CaseDebrief | null) {
@@ -380,8 +385,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     const progressPercent = Math.round(buildProgress * 100);
     const loadingTitle = isQuickStart ? "Analyzing Synthetic Telemetry..." : "Building Custom Investigation...";
     const loadingDescription = isQuickStart
-      ? "Selecting a scenario family, sampling clue evidence, injecting decoys, and normalizing the investigation timeline."
-      : `Applying ${family}, ${difficulty}, ${randomness}, and ${trainingMode} settings before the evidence board refreshes.`;
+      ? "Loading a scenario package, sampling threat logs, injecting background noise, and normalizing the investigation timeline."
+      : `Applying ${family}, ${difficulty}, ${randomness}, and ${trainingMode} settings before the package builds the evidence board.`;
 
     return (
       <div className="grid min-h-[58vh] place-items-center">
@@ -475,7 +480,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
               <div>
                 <p className="text-base font-semibold text-ink">Custom Lab Builder</p>
-                <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">template-safe randomness</p>
+                <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">package-driven randomness</p>
               </div>
             </div>
 
@@ -679,7 +684,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical text-xs uppercase tracking-[0.22em]">Operational guidance</p>
               </div>
               <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-2 text-sm leading-6"} text-zinc-300`}>
-                {operationalGuidanceForDifficulty(caseFile.difficulty, trainingMode)}
+                {operationalGuidanceForDifficulty(caseFile, trainingMode)}
               </p>
             </div>
           </GlassCard>
