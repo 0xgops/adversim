@@ -327,9 +327,15 @@ const scenarioConfigs: Record<string, BuilderScenarioConfig> = {
       "[AI Analyst]: Ask about auth pressure, suspicious shell activity, privilege changes, discovery, or outbound transfer. I will explain what the synthetic telemetry means and which detection it supports.",
     quickPrompts: ["Explain auth evidence", "Draft triage note"],
     why: [
-      ["What happened", "A credential anomaly progressed into suspicious endpoint and network signals."],
-      ["Why it matters", "You learn how a defender connects separate clues into one clear incident story."],
-      ["Next step", "Open Telemetry, Detections, Timeline, then Reports from the Command Dock."]
+      [
+        "Telemetry pattern",
+        "Repeated authentication pressure followed by endpoint and network signals is critical because it can reveal account misuse before broader access occurs."
+      ],
+      [
+        "Analyst strategic insight",
+        "Correlating identity, endpoint, and egress telemetry helps a junior SOC analyst turn isolated alerts into one defensible incident narrative."
+      ],
+      ["Recommended workflow", "Review Telemetry, validate Detections, reconstruct the Timeline, then generate the Report from the Command Dock."]
     ],
     stages: credentialStages
   },
@@ -342,9 +348,15 @@ const scenarioConfigs: Record<string, BuilderScenarioConfig> = {
       "[AI Analyst]: Ask about after-hours access, DLP labels, archive staging, external sharing, or egress drift. I will explain the insider-risk evidence in beginner-friendly language.",
     quickPrompts: ["Explain DLP evidence", "Summarize insider risk"],
     why: [
-      ["What happened", "A user touched sensitive folders, staged a bundle, shared it externally, and exceeded normal upload volume."],
-      ["Why it matters", "This is the most beginner-friendly track: no malware lore, just data access, sharing, and common-sense risk."],
-      ["Next step", "Open Detections and Timeline to see how file, DLP, SaaS, and proxy signals become one case."]
+      [
+        "Telemetry pattern",
+        "Sensitive file access followed by staging, external sharing, and outbound drift is critical because it can indicate data exposure before confirmation arrives."
+      ],
+      [
+        "Analyst strategic insight",
+        "A junior SOC analyst should compare the activity against business context, user baseline, and policy signals before assigning intent."
+      ],
+      ["Recommended workflow", "Review Detections and Timeline to see how file, DLP, SaaS, and proxy signals become one case."]
     ],
     stages: insiderStages
   }
@@ -733,7 +745,7 @@ function buildAnalystReply(
 
 function getSessionId() {
   if (typeof window === "undefined") {
-    return "local-demo";
+    return "local-session";
   }
 
   const storageKey = "adversim-ai-session";
@@ -743,7 +755,7 @@ function getSessionId() {
     return existing;
   }
 
-  const nextId = `judge-demo-${window.crypto.randomUUID()}`;
+  const nextId = `analyst-session-${window.crypto.randomUUID()}`;
   window.localStorage.setItem(storageKey, nextId);
   return nextId;
 }
@@ -844,7 +856,7 @@ export default function BuilderPage() {
       setAiStatusMessage(status.message);
       setAiSource(status.mode === "live-ready" ? "live-openai" : "fallback");
       setAiModel(status.mode === "fallback-ready" && !status.has_api_key ? "guarded-fallback" : status.model);
-      setAiRemainingCalls(status.remaining_demo_calls);
+      setAiRemainingCalls(Number(status.remaining_session_calls ?? 0));
     });
 
     window.localStorage.removeItem("adversim-guided-launch");
@@ -1430,8 +1442,8 @@ export default function BuilderPage() {
         </GlassCard>
 
         <GlassCard className="p-5">
-          <p className="technical text-xs uppercase tracking-[0.26em] text-lime">Learning Lens</p>
-          <h2 className="mt-2 text-xl font-semibold text-ink">Why it matters</h2>
+          <p className="technical text-xs uppercase tracking-[0.26em] text-lime">Analyst Lens</p>
+          <h2 className="mt-2 text-xl font-semibold text-ink">Strategic Insight</h2>
           <div className="mt-5 space-y-4">
             {scenarioConfig.why.map(([title, copy]) => (
               <div key={title} className="rounded-[18px] border border-line bg-black/25 p-4">

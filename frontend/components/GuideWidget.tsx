@@ -34,7 +34,7 @@ const routeTips: Record<string, string[]> = {
     "Events are synthetic, but shaped like blue-team telemetry."
   ],
   "/detections": [
-    "Each card shows what the engine matched and why it matters.",
+  "Each card shows what the engine matched and how that evidence affects triage priority.",
     "Confidence increases as multiple signals line up."
   ],
   "/timeline": [

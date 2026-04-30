@@ -47,7 +47,7 @@ const users = [
   "lisa.chen@adversim.co",
   "morgan.ellis",
   "hr.manager",
-  "project.contractor",
+  "program.contractor",
   "samir.patel",
   "jordan.reed",
   "maya.okafor",

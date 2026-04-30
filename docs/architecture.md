@@ -1,13 +1,13 @@
 # AdverSim Architecture
 
-AdverSim starts as a JSON-first full-stack demo:
+AdverSim starts as a JSON-first full-stack defense lab:
 
 - **Frontend:** Next.js, TypeScript, Tailwind, Recharts
 - **Backend:** Python FastAPI
 - **Data:** In-memory placeholder state seeded from synthetic scenario logic
 - **Reports:** Markdown output
 
-## Safe Demo Boundary
+## Safe Simulation Boundary
 
 AdverSim only models adversary behavior as synthetic logs. It does not run commands against systems, perform live targeting, collect credentials, generate malware, or provide evasion workflows.
 
@@ -34,4 +34,4 @@ flowchart LR
 
 ## Next Data Step
 
-Move the scenario metadata and generated simulation runs into JSON files under `demo_assets/`, then migrate to SQLite when the data model stabilizes.
+Move the scenario metadata and generated simulation runs into JSON seed files, then migrate to SQLite when the data model stabilizes.

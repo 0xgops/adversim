@@ -77,14 +77,14 @@ class SimulationResult(BaseModel):
 class AIAnalystRequest(BaseModel):
     prompt: str = Field(default="Explain the latest synthetic evidence.", max_length=700)
     active_phase: str = Field(default="Credential Access", max_length=80)
-    session_id: str = Field(default="local-demo", max_length=96)
+    session_id: str = Field(default="local-session", max_length=96)
     telemetry: list[TelemetryEvent] = Field(default_factory=list)
     detections: list[Detection] = Field(default_factory=list)
 
 
 class AIReportRequest(BaseModel):
-    session_id: str = Field(default="local-demo", max_length=96)
-    audience: Literal["analyst", "executive", "judge"] = Field(default="judge")
+    session_id: str = Field(default="local-session", max_length=96)
+    audience: Literal["analyst", "executive", "stakeholder"] = Field(default="analyst")
 
 
 class AIResponse(BaseModel):
@@ -101,6 +101,6 @@ class AIStatus(BaseModel):
     enabled: bool
     has_api_key: bool
     model: str
-    remaining_demo_calls: int
+    remaining_session_calls: int
     message: str
     last_error: str | None = None

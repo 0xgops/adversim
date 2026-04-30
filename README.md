@@ -2,7 +2,7 @@
 
 AdverSim is an AI-assisted mock-incident lab for blue-team training. A learner asks AI to create a safe synthetic security incident, then practices how defenders identify clues, read logs, reconstruct the timeline, and write the response.
 
-It demonstrates a safe defensive workflow:
+It provides a safe defensive workflow:
 
 1. Generate a randomized safe training case in Scenario Director.
 2. Investigate an evidence board with key clues and decoy events.
@@ -12,14 +12,14 @@ It demonstrates a safe defensive workflow:
 
 AdverSim does not implement real exploitation, malware, credential theft, evasion, or live targeting. All behavior is represented as synthetic logs for defensive education.
 
-## Project Structure
+## Repository Layout
 
 ```text
 adversim/
 +-- frontend/     # Next.js, TypeScript, Tailwind UI
 +-- backend/      # Python FastAPI API
-+-- docs/         # Architecture and demo notes
-+-- demo_assets/  # JSON-first demo data
++-- docs/         # Architecture and operating notes
++-- seed_assets/  # JSON-first seed data
 +-- README.md
 ```
 
@@ -74,10 +74,10 @@ Set `NEXT_PUBLIC_API_URL` if your backend is not running on `http://localhost:80
 
 ## Deployment Notes
 
-Recommended competition deploy:
+Recommended production deployment:
 
-- Frontend: Vercel with project root `adversim/frontend`
-- Backend: Render or Railway with project root `adversim/backend`
+- Frontend: Vercel with service root `adversim/frontend`
+- Backend: Render or Railway with service root `adversim/backend`
 
 Backend start command:
 
@@ -101,7 +101,7 @@ Optional Neon case-history schema:
 backend/db/case_history.sql
 ```
 
-The frontend keeps the last five staged investigations locally for the demo. The SQL schema is ready for Neon when persistent user history is enabled.
+The frontend keeps the last five staged investigations locally for lightweight history. The SQL schema is ready for Neon when persistent user history is enabled.
 
 Frontend environment variable:
 
@@ -109,37 +109,28 @@ Frontend environment variable:
 NEXT_PUBLIC_API_URL=https://your-backend-domain.onrender.com
 ```
 
-## Demo Flow
+## Simulation Flow
 
-The lab now has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The initial vertical slice includes two polished ready scenario families:
+The lab has two layers: Scenario Director for interactive investigation practice, and Adversary Builder for cinematic replay telemetry. The current environment includes ten ready scenario families:
 
-**Credential Compromise Chain**
+- Credential Compromise Chain
+- Insider Data Drift
+- Cloud Account Takeover
+- Endpoint Activity
+- Exfiltration Signal
+- Lateral Movement
+- Ransomware Precursor
+- Supply Chain Compromise
+- Spear-Phishing Campaign
+- Web API Exploitation
 
-- Failed login pattern
-- Successful login from unusual source
-- Suspicious command execution
-- Privilege escalation attempt
-- File discovery behavior
-- Large outbound transfer
-- Critical incident report
-
-**Insider Data Drift**
-
-- After-hours sensitive file access
-- File access burst across HR and Finance paths
-- DLP-style sensitive label matches
-- Archive staging behavior
-- External sharing event
-- Outbound upload drift
-- Insider-risk incident report
-
-Each ready scenario supports nine training profiles:
+Each scenario supports nine training profiles:
 
 - Clean / Low, Medium, High
 - Realistic / Low, Medium, High
 - Noisy / Low, Medium, High
 
-That creates 18 guided lab runs across the two scenario families. Duration controls pacing, not the incident type.
+That creates 90 guided lab runs across the ten scenario families. Duration controls pacing, not the incident type.
 
 Main navigation:
 
@@ -153,9 +144,4 @@ Main navigation:
 
 ## Roadmap
 
-- Persist generated simulations to JSON files
-- Add SQLite storage
-- Expand detection rules
-- Add report export to PDF
-- Add additional scenario templates
-- Connect Scenario Director debriefs to live AI when demo budget allows
+AdverSim v2.0 Roadmap: Future updates will transition from template-based incidents to LLM-Driven Scenario Generation, featuring integrated support for raw CTI feeds (Mandiant, CISA) and automated MITRE ATT&CK mapping for reactive defense training.

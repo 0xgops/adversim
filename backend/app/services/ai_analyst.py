@@ -79,7 +79,7 @@ Synthetic lab context:
         context = _compact_context(latest_result, None)
         user_prompt = f"""Generate a polished AdverSim incident report for a {request.audience} audience.
 
-Use Markdown. Keep it concise, demo-ready, and safe.
+Use Markdown. Keep it concise, analyst-ready, and safe.
 
 Synthetic lab context:
 {context}
@@ -87,7 +87,7 @@ Synthetic lab context:
         fallback = _fallback_report(latest_result, request.audience)
         return self._complete("report", request.session_id, user_prompt, fallback, max_output_tokens=900)
 
-    def status(self, session_id: str = "local-demo") -> AIStatus:
+    def status(self, session_id: str = "local-session") -> AIStatus:
         api_key = os.getenv("OPENAI_API_KEY")
         ai_enabled = os.getenv("ADVERSIM_AI_ENABLED", "true").lower() not in {"0", "false", "off", "no"}
         remaining = self.budget.remaining_for_session(session_id)
@@ -98,7 +98,7 @@ Synthetic lab context:
                 enabled=ai_enabled,
                 has_api_key=bool(api_key),
                 model=self.model,
-                remaining_demo_calls=remaining,
+                remaining_session_calls=remaining,
                 message="Guarded fallback is ready. Set OPENAI_API_KEY in the backend shell to enable live AI.",
                 last_error=self.last_error,
             )
@@ -109,8 +109,8 @@ Synthetic lab context:
                 enabled=ai_enabled,
                 has_api_key=True,
                 model=self.model,
-                remaining_demo_calls=0,
-                message="Live AI is configured, but the demo call limit has been reached. Cached/fallback responses remain available.",
+                remaining_session_calls=0,
+                message="Live AI is configured, but the session call limit has been reached. Cached/fallback responses remain available.",
                 last_error=self.last_error,
             )
 
@@ -119,7 +119,7 @@ Synthetic lab context:
             enabled=True,
             has_api_key=True,
             model=self.model,
-            remaining_demo_calls=remaining,
+            remaining_session_calls=remaining,
             message="Live OpenAI analyst is armed. First answer will use API credits unless a cached answer exists.",
             last_error=self.last_error,
         )
@@ -148,7 +148,6 @@ Synthetic lab context:
             text = self._call_openai(user_prompt, max_output_tokens or self.max_output_tokens)
         except Exception as error:
             self.last_error = _sanitize_error(error)
-            print(f"AdverSim AI fallback after OpenAI error: {self.last_error}")
             return _response(fallback, "fallback", self.model, remaining, diagnostic=self.last_error)
 
         self.last_error = None
@@ -180,10 +179,10 @@ SYSTEM_PROMPT = f"""You are AdverSim's Live AI Analyst, an expert blue-team ment
 Rules:
 - Treat every artifact as synthetic defensive training data.
 - Explain detection reasoning, evidence, triage priority, and response next steps.
-- Be specific enough to teach SOC analysts and clear enough for non-cyber judges.
+- Be specific enough to teach junior SOC analysts and clear enough for non-cyber stakeholders.
 - Do not provide exploitation steps, malware instructions, credential theft guidance, evasion instructions, or live targeting guidance.
 - If command-like strings appear, describe them only as inert telemetry indicators.
-- Keep answers compact and presentation-ready.
+- Keep answers compact and analyst-ready.
 
 Safety boundary: {SAFETY_NOTE}
 """
@@ -276,17 +275,15 @@ def _fallback_report(latest_result: SimulationResult, audience: str) -> str:
         f"- **{item.title}** ({item.tactic}): {item.description}"
         for item in latest_result.timeline
     )
-    audience_note = "judges" if audience == "judge" else audience
-
     return f"""# AdverSim AI Incident Brief
 
 ## Executive Summary
 
 AdverSim generated a synthetic Credential Compromise Chain for `{summary.target_user}` on `{summary.target_host}`. The lab detected {summary.incident_count} suspicious clusters with {summary.severity} severity and {summary.confidence}% confidence.
 
-## Why This Matters For {audience_note.title()}
+## Analyst Strategic Insight
 
-The demo shows how defenders can move from raw telemetry to detection evidence, timeline reconstruction, and report-ready communication without touching live systems.
+The lab shows how defenders can move from raw telemetry to detection evidence, timeline reconstruction, and report-ready communication without touching live systems.
 
 ## Detection Evidence
 

@@ -79,13 +79,13 @@ export function generateAiReport(request: AIReportRequest, fallback: AIResponse)
   );
 }
 
-export function getAiStatus(sessionId = "local-demo"): Promise<AIStatus> {
+export function getAiStatus(sessionId = "local-session"): Promise<AIStatus> {
   const fallback: AIStatus = {
     mode: "fallback-ready",
     enabled: true,
     has_api_key: false,
     model: "guarded-fallback",
-    remaining_demo_calls: 0,
+    remaining_session_calls: 0,
     message: "Backend AI status is unavailable. Guarded fallback remains ready."
   };
 

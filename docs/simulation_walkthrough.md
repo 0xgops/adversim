@@ -1,4 +1,4 @@
-# Demo Script
+# Simulation Walkthrough
 
 ## 3-Minute Flow
 

@@ -3,7 +3,7 @@
 
 create table if not exists case_history (
   id bigserial primary key,
-  session_id text not null default 'local-demo',
+  session_id text not null default 'local-session',
   case_id text not null,
   title text not null,
   scenario_family text not null,

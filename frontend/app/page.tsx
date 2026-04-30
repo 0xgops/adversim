@@ -314,7 +314,7 @@ export default function DashboardPage() {
       label: "Timeline",
       value: activeCase ? activeCase.chartData.mappedTactics.filter((count) => count > 0).length : 0,
       helper: activeCase ? "Mapped stages" : "Not reconstructed",
-      info: "Timeline turns scattered logs into the story of what happened, when, and why it matters.",
+    info: "Timeline reconstructs scattered logs into the sequence a SOC analyst needs for containment and reporting.",
       icon: Route,
       color: activeCase ? "text-zinc-200" : "text-zinc-500"
     }

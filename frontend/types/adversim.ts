@@ -74,7 +74,7 @@ export type AIAnalystRequest = {
 
 export type AIReportRequest = {
   session_id: string;
-  audience: "analyst" | "executive" | "judge";
+  audience: "analyst" | "executive" | "stakeholder";
 };
 
 export type AIResponse = {
@@ -91,7 +91,7 @@ export type AIStatus = {
   enabled: boolean;
   has_api_key: boolean;
   model: string;
-  remaining_demo_calls: number;
+  remaining_session_calls: number;
   message: string;
   last_error?: string | null;
 };

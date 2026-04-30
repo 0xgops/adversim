@@ -51,7 +51,7 @@ function AIStatusPill() {
     enabled: true,
     has_api_key: false,
     model: "checking",
-    remaining_demo_calls: 0,
+    remaining_session_calls: 0,
     message: "Checking AI readiness..."
   });
 

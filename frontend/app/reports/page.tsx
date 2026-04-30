@@ -10,7 +10,7 @@ const IDLE_REPORT_MARKDOWN = "# Incident Report\n*Awaiting Case Completion*";
 
 function getSessionId() {
   if (typeof window === "undefined") {
-    return "local-demo";
+    return "local-session";
   }
 
   const storageKey = "adversim-ai-session";
@@ -20,7 +20,7 @@ function getSessionId() {
     return existing;
   }
 
-  const nextId = `judge-demo-${window.crypto.randomUUID()}`;
+  const nextId = `analyst-session-${window.crypto.randomUUID()}`;
   window.localStorage.setItem(storageKey, nextId);
   return nextId;
 }
@@ -110,7 +110,7 @@ export default function ReportsPage() {
     const response = await generateAiReport(
       {
         session_id: sessionId,
-        audience: "judge"
+        audience: "analyst"
       },
       fallbackAiReport(reportMarkdown)
     );

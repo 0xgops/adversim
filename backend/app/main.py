@@ -9,7 +9,7 @@ from app.services.simulator import generate_simulation, list_scenarios
 
 app = FastAPI(
     title="AdverSim API",
-    description="Safe synthetic adversary simulation API for blue-team training demos.",
+    description="Safe synthetic adversary simulation API for blue-team training environments.",
     version="0.1.0",
 )
 
@@ -95,5 +95,5 @@ def ai_report(request: AIReportRequest) -> AIResponse:
 
 
 @app.get("/api/ai/status")
-def ai_status(session_id: str = "local-demo") -> AIStatus:
+def ai_status(session_id: str = "local-session") -> AIStatus:
     return ai_analyst.status(session_id)

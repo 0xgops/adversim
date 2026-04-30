@@ -109,7 +109,7 @@ function missionRulesForDifficulty(difficulty: ScenarioDifficulty, trainingMode:
     return "Severity badges are hidden. Use the Dashboard Mapped Tactics chart to decide which event types deserve attention.";
   }
 
-  return `Severity badges and ${trainingMode === "Guided" ? "plain-English hints" : "post-submission hints"} are available. Select the events that support the incident narrative.`;
+  return `Severity badges and ${trainingMode === "Guided" ? "plain-English hints" : "post-investigation hints"} are available. Select the events that support the incident narrative.`;
 }
 
 function evidenceHintForDifficulty(event: EvidenceEvent, difficulty: ScenarioDifficulty, trainingMode: TrainingMode, debrief: CaseDebrief | null) {
