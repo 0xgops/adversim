@@ -314,7 +314,7 @@ export default function DashboardPage() {
       label: "Timeline",
       value: activeCase ? activeCase.chartData.mappedTactics.filter((count) => count > 0).length : 0,
       helper: activeCase ? "Mapped stages" : "Not reconstructed",
-    info: "Timeline reconstructs scattered logs into the sequence a SOC analyst needs for containment and reporting.",
+      info: "Timeline reconstructs scattered logs into the sequence a SOC analyst needs for containment and reporting.",
       icon: Route,
       color: activeCase ? "text-zinc-200" : "text-zinc-500"
     }
@@ -468,12 +468,15 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
-      <section className={`grid lg:grid-cols-4 ${isSocView ? "gap-3" : "gap-5"}`}>
+      <section className={`relative z-40 grid overflow-visible lg:grid-cols-4 ${isSocView ? "gap-3" : "gap-5"}`}>
         {metrics.map((metric) => {
           const MetricIcon = metric.icon;
 
           return (
-            <BentoCard key={metric.label} className="relative overflow-visible">
+            <BentoCard
+              key={metric.label}
+              className={`relative overflow-visible ${activeMetricInfo === metric.label ? "z-50" : "z-10"}`}
+            >
               <div className={`flex items-start justify-between ${isSocView ? "gap-2" : "gap-4"}`}>
                 <div>
                   <p className="technical text-xs uppercase tracking-[0.24em] text-zinc-500">{metric.label}</p>
@@ -501,7 +504,7 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, y: -6, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                  className="guide-glass absolute right-4 top-16 z-30 w-64 rounded-[18px] p-3"
+                  className="guide-glass absolute right-4 top-16 z-[90] w-64 rounded-[18px] p-3"
                 >
                   <p className="technical text-[10px] uppercase tracking-[0.18em] text-lime">{metric.label}</p>
                   <p className="mt-2 text-xs leading-5 text-zinc-300">{metric.info}</p>
@@ -512,7 +515,7 @@ export default function DashboardPage() {
         })}
       </section>
 
-      <section className={`grid ${isSocView ? "gap-3 xl:grid-cols-2" : "gap-5 lg:grid-cols-[1.15fr_0.85fr]"}`}>
+      <section className={`relative z-0 grid ${isSocView ? "gap-3 xl:grid-cols-2" : "gap-5 lg:grid-cols-[1.15fr_0.85fr]"}`}>
         <BentoCard className={isSocView ? "min-h-[420px]" : "min-h-[360px]"}>
           <div className={`${isSocView ? "mb-2" : "mb-5"} flex items-center justify-between gap-4`}>
             <div>
