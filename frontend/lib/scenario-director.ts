@@ -2247,6 +2247,255 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
         contextualize: false
       }
     ]
+  },
+  "Physical: BadUSB Parking Lot Drop": {
+    family: "Physical: BadUSB Parking Lot Drop",
+    titles: ["Physical: BadUSB \"Parking Lot\" Drop", "Keyboard Emulation Breach", "Front Desk USB Incident"],
+    missionBriefings: [
+      "An employee found a high-capacity USB drive in the parking lot and connected it to a front-desk workstation to identify the owner. Within seconds, endpoint telemetry captured keyboard-emulation behavior, shell-like process activity, and outbound beaconing. Identify the automation sequence and the persistence hook left behind.",
+      "Trace a breach originating from a lost USB drive plugged into a workstation. Correlate new HID device telemetry, rapid shell activity, and outbound network signals."
+    ],
+    operationalGuidance: [
+      "This is a physical-to-endpoint investigation. Start with the HID device load, then follow the process and network sequence that appears immediately afterward."
+    ],
+    targetUsers: ["s-jenkins", "frontdesk.ops", "reception.service"],
+    targetHosts: ["NYC-HQ-FRONT-01", "NYC-HQ-LOBBY-02"],
+    defaultDifficulty: "Beginner",
+    attackerProfiles: ["BadUSB training persona", "Keyboard-emulation intrusion emulator", "Physical access awareness scenario"],
+    expectedFindings: [
+      "Unauthorized HID device appeared on the workstation",
+      "Rapid shell-like process telemetry followed the device load",
+      "Outbound heartbeat was initiated by the same workstation shortly after execution"
+    ],
+    recommendedResponse: [
+      "Isolate the affected workstation from the network",
+      "Preserve USB, endpoint, process, and network telemetry",
+      "Review autorun, startup, and scheduled-task persistence locations",
+      "Reinforce removable-media handling and front-desk reporting procedures"
+    ],
+    preventionLessons: [
+      "Disable unapproved removable HID devices where possible",
+      "Alert on new keyboard devices followed by immediate shell activity",
+      "Train staff to hand unknown media to IT without connecting it"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "New high-speed Human Interface Device connected to {host}; keyboard emulation behavior detected",
+        plain_english: "A new device acted like a keyboard immediately after being plugged in.",
+        severity: "Medium",
+        tags: ["endpoint", "hardware", "hid", "physical-access"],
+        source_ref: "MITRE T1200"
+      },
+      {
+        source: "Endpoint",
+        summary: "Shell-like process telemetry observed after rapid automated input on {host}",
+        plain_english: "The workstation launched command activity immediately after the device appeared.",
+        severity: "Critical",
+        tags: ["endpoint", "execution", "shell", "process"],
+        source_ref: "MITRE T1059.003"
+      },
+      {
+        source: "Network",
+        summary: "Encrypted heartbeat from {host} to temp-storage-cdn.adversim.test initiated by shell telemetry",
+        plain_english: "Network traffic began shortly after the suspicious process activity.",
+        severity: "High",
+        tags: ["network", "c2", "egress", "post-execution"],
+        source_ref: "MITRE T1071.001"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "USB headset connected to conference-room workstation",
+        plain_english: "A normal peripheral connection on a different host is not part of the suspicious sequence.",
+        severity: "Low",
+        tags: ["decoy", "usb", "peripheral"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "s-jenkins badge reader authentication recorded at front desk",
+        plain_english: "Physical badge access helps context but does not prove endpoint compromise.",
+        severity: "Low",
+        tags: ["decoy", "physical-access", "auth"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Printer driver service refreshed for lobby printer queue",
+        plain_english: "Printer maintenance is routine office background noise.",
+        severity: "Low",
+        tags: ["decoy", "printer", "service"],
+        contextualize: false
+      }
+    ]
+  },
+  "Social: AI-Driven Vishing": {
+    family: "Social: AI-Driven Vishing",
+    titles: ["Social: AI-Driven Vishing", "Executive Voice Reset Case", "Helpdesk Social Engineering Review"],
+    missionBriefings: [
+      "The helpdesk received a call from someone sounding like a senior executive who claimed to be locked out while traveling. A technician manually reset the password and issued a temporary MFA token. Minutes later, identity telemetry captured an unusual login and privileged cloud changes. Map the administrative actions taken during the breach window.",
+      "Investigate an unauthorized password reset triggered by a convincing voice call. Correlate helpdesk activity, unusual authentication, and post-login administrative changes."
+    ],
+    operationalGuidance: [
+      "This is an identity workflow hunt. Correlate the manual reset with the unusual sign-in, then inspect privilege changes made after the account was accessed."
+    ],
+    targetUsers: ["helpdesk-tech-04", "exec-level-01", "service-desk.lead"],
+    targetHosts: ["NYC-AUTH-MGMT", "AZURE-AD-SYNC"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Voice-driven social engineering emulator", "Executive identity abuse persona", "Helpdesk workflow training actor"],
+    expectedFindings: [
+      "Manual executive password reset was performed through the helpdesk tool",
+      "Unusual login followed the reset without a normal travel pattern",
+      "Privileged cloud role assignment occurred during the access window"
+    ],
+    recommendedResponse: [
+      "Revoke the temporary MFA token and reset the affected account",
+      "Review all administrative actions taken during the breach window",
+      "Suspend or remove the new service account pending validation",
+      "Reinforce helpdesk identity verification for executive requests"
+    ],
+    preventionLessons: [
+      "Require callback verification through approved channels",
+      "Alert on manual resets followed by impossible-travel sign-ins",
+      "Require approval gates for privileged role assignments"
+    ],
+    threatLogs: [
+      {
+        source: "Identity",
+        summary: "Password for exec-level-01 reset by helpdesk-tech-04 through internal admin workflow",
+        plain_english: "A helpdesk technician changed an executive account password outside the usual flow.",
+        severity: "Low",
+        tags: ["identity", "helpdesk", "account-manipulation", "vishing"],
+        source_ref: "MITRE T1098"
+      },
+      {
+        source: "Auth",
+        summary: "exec-level-01 login from reserved lab IP 203.0.113.58 with geographic mismatch",
+        plain_english: "The account logged in from a location that does not fit the expected travel pattern.",
+        severity: "Critical",
+        tags: ["auth", "identity", "valid-accounts", "credential-access"],
+        source_ref: "MITRE T1078"
+      },
+      {
+        source: "Cloud",
+        summary: "Global Admin role assigned to backup-temp-svc after executive account access",
+        plain_english: "A powerful cloud role was granted shortly after the unusual executive login.",
+        severity: "Critical",
+        tags: ["cloud", "privilege", "account-manipulation", "post-login"],
+        source_ref: "MITRE T1098.003"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "Routine password reset completed for contractor onboarding",
+        plain_english: "This reset followed standard onboarding and is unrelated to the executive account.",
+        severity: "Low",
+        tags: ["decoy", "helpdesk", "onboarding"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "ReadOnly role assigned to reporting automation account",
+        plain_english: "A low-privilege automation role assignment does not match the suspicious admin escalation.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "role"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Helpdesk knowledge-base article opened on MFA reset policy",
+        plain_english: "Documentation access is useful context but is not direct evidence of account abuse.",
+        severity: "Low",
+        tags: ["decoy", "helpdesk", "documentation"],
+        contextualize: false
+      }
+    ]
+  },
+  "Shadow IT: Hardware Implant": {
+    family: "Shadow IT: Hardware Implant",
+    titles: ["Shadow IT: Hardware Implant", "Rogue Bridge in Server Room", "Core Switch Implant Hunt"],
+    missionBriefings: [
+      "A network audit discovered a rogue MAC address connected to a port behind the primary core switch. The device is quiet to direct probes but appears to bridge internal VLANs while collecting packet captures. Identify which network segments were exposed and what traffic was captured.",
+      "Locate a hidden hardware bridge physically connected in the server room. Correlate switch-port anomalies, promiscuous-interface signals, and packet-capture staging."
+    ],
+    operationalGuidance: [
+      "This is a network-forensics investigation. Start with the port and VLAN mismatch, then validate sniffing and local packet-capture staging telemetry."
+    ],
+    targetUsers: ["SYSTEM", "network.monitor.svc"],
+    targetHosts: ["NYC-CORE-SWITCH-01", "NYC-IDF-SWITCH-07"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Hardware implant training persona", "Rogue network bridge emulator", "Physical-network intrusion scenario"],
+    expectedFindings: [
+      "Switch telemetry showed a MAC mismatch on an unexpected port",
+      "Rogue interface bridged production and guest VLANs",
+      "Packet-capture files were staged locally on the unknown device"
+    ],
+    recommendedResponse: [
+      "Disable the affected switch port and preserve switch telemetry",
+      "Perform physical inspection of the rack and cabling path",
+      "Review exposed VLANs and rotate credentials seen on affected segments",
+      "Harden port security and monitor for unauthorized bridge behavior"
+    ],
+    preventionLessons: [
+      "Enable switch port security and MAC allowlists for sensitive network closets",
+      "Alert on promiscuous-mode and VLAN bridge anomalies",
+      "Run recurring physical inspections of core networking areas"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "MAC address mismatch on Port 24; bridge detected between VLAN 10 Prod and VLAN 50 Guest",
+        plain_english: "The switch saw an unexpected device connecting two network segments that should remain separate.",
+        severity: "High",
+        tags: ["network", "hardware-implant", "bridge", "remote-system-discovery"],
+        source_ref: "MITRE T1018"
+      },
+      {
+        source: "Network",
+        summary: "Promiscuous interface behavior detected on rogue bridge with large local broadcast capture volume",
+        plain_english: "The unknown device appeared to be listening to traffic not specifically addressed to it.",
+        severity: "Critical",
+        tags: ["network", "sniffing", "shadow-it", "hardware-implant"],
+        source_ref: "MITRE T1040"
+      },
+      {
+        source: "Endpoint",
+        summary: "Packet-capture artifacts staged in temporary storage on rogue device telemetry",
+        plain_english: "Captured traffic was collected locally on the unknown device.",
+        severity: "Medium",
+        tags: ["endpoint", "staging", "collection", "pcap"],
+        source_ref: "MITRE T1074"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Network",
+        summary: "Approved printer VLAN trunk reported standard broadcast traffic",
+        plain_english: "Expected VLAN trunking for printers does not match the rogue bridge pattern.",
+        severity: "Low",
+        tags: ["decoy", "network", "printer"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Switch firmware inventory scan completed for access layer",
+        plain_english: "Inventory scanning is routine infrastructure management activity.",
+        severity: "Low",
+        tags: ["decoy", "inventory", "switch"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "network.monitor.svc authenticated to pull scheduled SNMP metrics",
+        plain_english: "Scheduled monitoring authentication is expected and not a rogue device indicator.",
+        severity: "Low",
+        tags: ["decoy", "auth", "monitoring"],
+        contextualize: false
+      }
+    ]
   }
 };
 
@@ -2391,6 +2640,10 @@ function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, 
 
   const tags = new Set(event.tags);
 
+  if (tags.has("hid") || tags.has("hardware")) return "MITRE T1200";
+  if (tags.has("vishing")) return "MITRE T1566.003";
+  if (tags.has("hardware-implant") || tags.has("bridge")) return "MITRE T1018";
+  if (tags.has("pcap")) return "MITRE T1074";
   if (tags.has("credential-access")) return "MITRE T1110";
   if (tags.has("rdp")) return "MITRE T1021.001";
   if (tags.has("initial-access")) return "MITRE T1078";
@@ -2453,7 +2706,10 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Shadow IT: Rogue Access Point": 3,
     "IoT: HVAC Gateway Breach": 3,
     "Cloud: S3 Bucket Leak": 4,
-    "Persistence: WMI Event Hook": 2
+    "Persistence: WMI Event Hook": 2,
+    "Physical: BadUSB Parking Lot Drop": 1,
+    "Social: AI-Driven Vishing": 0,
+    "Shadow IT: Hardware Implant": 3
   };
 
   return indexByFamily[family];
@@ -2463,11 +2719,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec") || tags.has("anonymous-read")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli") || tags.has("boot")) indexes.add(1);
-  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle") || tags.has("wmi") || tags.has("event-subscription")) indexes.add(2);
-  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it") || tags.has("iot")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read") || tags.has("botnet") || tags.has("cloud-storage")) indexes.add(4);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec") || tags.has("anonymous-read") || tags.has("vishing") || tags.has("valid-accounts")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli") || tags.has("boot") || tags.has("hid") || tags.has("shell")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle") || tags.has("wmi") || tags.has("event-subscription") || tags.has("account-manipulation")) indexes.add(2);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it") || tags.has("iot") || tags.has("hardware-implant") || tags.has("bridge") || tags.has("remote-system-discovery")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read") || tags.has("botnet") || tags.has("cloud-storage") || tags.has("pcap") || tags.has("post-execution")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }
