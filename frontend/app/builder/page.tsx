@@ -80,7 +80,6 @@ type ScenarioStage = {
   id: string;
   title: string;
   detail: string;
-  technical: string;
   tactic: string;
   source: string;
   severity: TelemetryEvent["severity"];
@@ -185,8 +184,6 @@ const credentialStages: ScenarioStage[] = [
     id: "spray",
     title: "Auth pressure",
     detail: "Failed login pattern",
-    technical:
-      "Authentication telemetry is clustering repeated failures against one account inside a short window. Analysts correlate source, cadence, and target role before treating it as credential pressure.",
     tactic: "Credential Access",
     source: "auth",
     severity: "medium",
@@ -198,8 +195,6 @@ const credentialStages: ScenarioStage[] = [
     id: "login",
     title: "Unusual success",
     detail: "New source sign-in",
-    technical:
-      "A successful session appears after failed attempts from an unfamiliar context. This raises identity risk when source reputation, device posture, or geography diverges from baseline.",
     tactic: "Initial Access",
     source: "cloud",
     severity: "high",
@@ -211,8 +206,6 @@ const credentialStages: ScenarioStage[] = [
     id: "execution",
     title: "Admin shell signal",
     detail: "Endpoint process event",
-    technical:
-      "Endpoint telemetry links the authenticated user to administrative shell activity. Review parent process, command-line metadata, and script logging before escalating.",
     tactic: "Execution",
     source: "endpoint",
     severity: "high",
@@ -224,8 +217,6 @@ const credentialStages: ScenarioStage[] = [
     id: "privilege",
     title: "Privilege attempt",
     detail: "Group change event",
-    technical:
-      "Identity controls recorded an attempted privilege-scope change. The key triage question is whether the request aligns with normal admin workflow and approval context.",
     tactic: "Privilege Escalation",
     source: "identity",
     severity: "critical",
@@ -237,8 +228,6 @@ const credentialStages: ScenarioStage[] = [
     id: "discovery",
     title: "Discovery sweep",
     detail: "File access pattern",
-    technical:
-      "File and endpoint events show broad enumeration behavior. Discovery signals matter most when they occur after unusual access or before outbound movement.",
     tactic: "Discovery",
     source: "endpoint",
     severity: "high",
@@ -250,8 +239,6 @@ const credentialStages: ScenarioStage[] = [
     id: "transfer",
     title: "Outbound pulse",
     detail: "Large transfer flag",
-    technical:
-      "Network telemetry shows outbound volume above baseline after collection signals. Analysts validate destination, byte count, timing, and business justification.",
     tactic: "Exfiltration",
     source: "network",
     severity: "critical",
@@ -266,8 +253,6 @@ const insiderStages: ScenarioStage[] = [
     id: "after-hours",
     title: "After-hours access",
     detail: "Sensitive folder touch",
-    technical:
-      "File-access telemetry shows sensitive data touched outside normal working context. Analysts compare role, schedule, and recent activity before assigning risk.",
     tactic: "Discovery",
     source: "fileshare",
     severity: "medium",
@@ -279,8 +264,6 @@ const insiderStages: ScenarioStage[] = [
     id: "access-burst",
     title: "Access burst",
     detail: "Metadata spike",
-    technical:
-      "A burst of file metadata reads can indicate inventory or collection activity. The signal is stronger when volume, folder sensitivity, and timing deviate from baseline.",
     tactic: "Collection",
     source: "fileshare",
     severity: "high",
@@ -292,8 +275,6 @@ const insiderStages: ScenarioStage[] = [
     id: "dlp-labels",
     title: "DLP labels",
     detail: "Sensitive category hit",
-    technical:
-      "DLP metadata indicates protected labels entered the activity window. Analysts validate category, user role, and whether the event aligns with staging or sharing.",
     tactic: "Collection",
     source: "dlp",
     severity: "high",
@@ -305,8 +286,6 @@ const insiderStages: ScenarioStage[] = [
     id: "archive",
     title: "Archive staging",
     detail: "Bundle prep signal",
-    technical:
-      "Endpoint events suggest temporary bundling or staging behavior. In defense workflows, staging is assessed alongside file count, path sensitivity, and user baseline.",
     tactic: "Collection",
     source: "endpoint",
     severity: "high",
@@ -318,8 +297,6 @@ const insiderStages: ScenarioStage[] = [
     id: "share",
     title: "External share",
     detail: "SaaS audit event",
-    technical:
-      "SaaS audit logs captured an external sharing or permission change. Analysts validate recipient, policy outcome, and whether the action follows sensitive access.",
     tactic: "Exfiltration",
     source: "saas",
     severity: "critical",
@@ -331,8 +308,6 @@ const insiderStages: ScenarioStage[] = [
     id: "egress",
     title: "Volume drift",
     detail: "Outbound upload spike",
-    technical:
-      "Proxy or NetFlow data shows an upload increase above baseline. Correlate destination class, payload volume, and preceding collection activity before response.",
     tactic: "Exfiltration",
     source: "proxy",
     severity: "critical",
@@ -452,7 +427,7 @@ function SeverityDot({ severity, active }: { severity: string; active: boolean }
   );
 }
 
-function TechnicalStageHint({ stage, active, alignRight }: { stage: ScenarioStage; active: boolean; alignRight: boolean }) {
+function StageSignalHint({ stage, active, alignRight }: { stage: ScenarioStage; active: boolean; alignRight: boolean }) {
   const Icon = stage.icon;
 
   return (
@@ -467,12 +442,11 @@ function TechnicalStageHint({ stage, active, alignRight }: { stage: ScenarioStag
         <Icon aria-hidden size={18} />
       </button>
       <div
-        className={`pointer-events-none absolute top-12 z-[80] w-72 rounded-[16px] border border-lime/25 bg-panel/95 p-3 text-left opacity-0 shadow-lime backdrop-blur-[22px] transition duration-150 group-hover/stagehint:translate-y-0 group-hover/stagehint:opacity-100 group-focus-within/stagehint:translate-y-0 group-focus-within/stagehint:opacity-100 ${
+        className={`pointer-events-none absolute top-12 z-[80] w-52 rounded-[14px] border border-lime/25 bg-panel/95 px-3 py-2 text-left opacity-0 shadow-lime backdrop-blur-[22px] transition duration-150 group-hover/stagehint:translate-y-0 group-hover/stagehint:opacity-100 group-focus-within/stagehint:translate-y-0 group-focus-within/stagehint:opacity-100 ${
           alignRight ? "right-0 translate-y-1" : "left-0 translate-y-1"
         }`}
       >
-        <p className="technical text-[9px] uppercase tracking-[0.2em] text-lime">{stage.tactic} / {stage.source}</p>
-        <p className="mt-2 text-xs leading-5 text-zinc-300">{stage.technical}</p>
+        <p className="technical text-[10px] uppercase tracking-[0.18em] text-lime">{stage.detail}</p>
       </div>
     </div>
   );
@@ -1250,7 +1224,7 @@ export default function BuilderPage() {
                     style={{ left: stage.x, top: stage.y }}
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <TechnicalStageHint stage={stage} active={isActive} alignRight={hintAlignsRight} />
+                      <StageSignalHint stage={stage} active={isActive} alignRight={hintAlignsRight} />
                       <SeverityDot severity={stage.severity} active={isActive || isComplete} />
                     </div>
                     <h3 className="mt-4 text-base font-semibold text-ink">{stage.title}</h3>
