@@ -10,6 +10,7 @@ import {
   Eye,
   FileText,
   GraduationCap,
+  Lightbulb,
   History,
   RefreshCw,
   ShieldAlert,
@@ -99,6 +100,25 @@ function eventCardTone(event: EvidenceEvent, selected: boolean, debrief: CaseDeb
   }
 
   return "border-line bg-black/20 opacity-75";
+}
+
+function EvidenceHintBubble({ hint, compact }: { hint: string; compact: boolean }) {
+  return (
+    <div className="group/hint relative mt-4 inline-flex">
+      <span className="grid h-8 w-8 place-items-center rounded-full border border-lime/25 bg-black/35 text-lime transition group-hover/hint:border-lime/60 group-hover/hint:bg-lime/10 group-hover/hint:shadow-lime">
+        <Lightbulb aria-hidden size={13} />
+        <span className="sr-only">Analyst hint</span>
+      </span>
+      <span
+        className={`pointer-events-none absolute bottom-10 left-0 z-30 w-[min(20rem,calc(100vw-4rem))] rounded-[16px] border border-lime/25 bg-panel/95 px-3 py-3 text-left text-zinc-300 opacity-0 shadow-lime backdrop-blur-[20px] transition duration-150 group-hover/hint:translate-y-0 group-hover/hint:opacity-100 ${
+          compact ? "soc-terminal-copy translate-y-1" : "translate-y-1 text-sm leading-6"
+        }`}
+      >
+        <span className="technical mb-1 block text-[9px] uppercase tracking-[0.18em] text-lime">Analyst hint</span>
+        {hint}
+      </span>
+    </div>
+  );
 }
 
 const MISSION_BRIEFING_COPY =
@@ -716,9 +736,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                         <EvidenceStatus event={event} selected={selected} debrief={debrief} />
                       </div>
                     </div>
-                    {evidenceHint ? (
-                      <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-sm leading-6"} text-zinc-400`}>{evidenceHint}</p>
-                    ) : null}
+                    {evidenceHint ? <EvidenceHintBubble hint={evidenceHint} compact={isSocView} /> : null}
                     <AnimatePresence initial={false}>
                       {canRevealSourceTags ? (
                         <motion.div
