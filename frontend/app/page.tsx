@@ -341,8 +341,9 @@ export default function DashboardPage() {
               <span className="technical rounded-full border border-lime/35 bg-lime/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-lime shadow-lime">
                 Cybersecurity
               </span>
-              <span className="technical rounded-full border border-line bg-white/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.24em] text-zinc-300">
-                [ Investigate ]
+              <span className="technical inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-zinc-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-lime shadow-lime" />
+                Investigation Mode
               </span>
               <span className="technical text-xs uppercase tracking-[0.32em] text-lime">
                 AdverSim // synthetic defense lab
