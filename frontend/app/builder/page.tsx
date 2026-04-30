@@ -1020,9 +1020,9 @@ export default function BuilderPage() {
             <div>
               <div className="flex items-center gap-2 text-lime">
                 <Trophy aria-hidden size={19} />
-                <p className="technical text-xs uppercase tracking-[0.24em]">Investigation complete</p>
+                <p className="technical text-xs uppercase tracking-[0.24em]">Replay complete</p>
               </div>
-              <h2 className="mt-3 text-2xl font-semibold text-ink">Case reconstructed. Report ready.</h2>
+              <h2 className="mt-3 text-2xl font-semibold text-ink">Case staged. Investigation ready.</h2>
             </div>
             <span className="technical rounded-full border border-crimson/30 bg-crimson/10 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-crimson">
               {activeStreamCase?.severity ?? "High"} severity
@@ -1050,7 +1050,7 @@ export default function BuilderPage() {
                 <div>
                   <p className="text-sm font-semibold text-ink">Auto AI Debrief</p>
                   <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-                    {isAutoBriefing ? "analyzing completed case" : autoDebrief ? sourceLabel(autoDebrief.source) : "queued"}
+                    {isAutoBriefing ? "analyzing replay context" : autoDebrief ? sourceLabel(autoDebrief.source) : "queued"}
                   </p>
                 </div>
               </div>

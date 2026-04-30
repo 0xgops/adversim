@@ -230,7 +230,7 @@ export default function DashboardPage() {
   }, [result.summary.incident_count, result.summary.confidence, result.telemetry.length, result.timeline.length]);
 
   const isSystemIdle = !activeCase;
-  const investigationComplete = hasCompletedRun || streamCompleted;
+  const replayComplete = Boolean(activeCase) && (hasCompletedRun || streamCompleted);
 
   const severityData = useMemo(() => {
     if (!activeCase) {
@@ -270,11 +270,11 @@ export default function DashboardPage() {
   }
 
   const navigateFromTactics = () => {
-    router.push(investigationComplete ? "/timeline" : "/investigation");
+    router.push(replayComplete ? "/timeline" : "/investigation");
   };
 
   const navigateFromSeverity = () => {
-    router.push(investigationComplete ? "/detections" : "/investigation");
+    router.push(replayComplete ? "/detections" : "/investigation");
   };
 
 
@@ -411,31 +411,33 @@ export default function DashboardPage() {
           <div className={`soc-compact-card rounded-[24px] border border-line bg-black/30 ${isSocView ? "p-3" : "p-5"}`}>
             <div className="flex items-center justify-between">
               <p className="technical text-xs uppercase tracking-[0.25em] text-zinc-500">
-                {investigationComplete ? "Investigation complete" : "Mission"}
+                {replayComplete ? "Active investigation" : hasActiveInvestigation ? "Active case" : "Mission"}
               </p>
               <span
                 className={`technical rounded-full border px-3 py-1 text-xs ${
-                  investigationComplete
+                  replayComplete
                     ? "border-crimson/30 bg-crimson/10 text-crimson"
                     : "border-lime/30 bg-lime/10 text-lime"
                 }`}
               >
-                {investigationComplete ? result.summary.severity : "Ready"}
+                {replayComplete ? activeCase?.severity ?? result.summary.severity : hasActiveInvestigation ? "Active" : "Ready"}
               </span>
             </div>
             <p className="mt-4 text-3xl font-semibold text-ink">
-              {investigationComplete ? "Case Closed" : "You Are The Analyst"}
+              {replayComplete ? "Case Ready To Investigate" : hasActiveInvestigation ? "Active Investigation" : "You Are The Analyst"}
             </p>
             <p className="mt-3 text-sm leading-6 text-zinc-400">
-              {investigationComplete
-                ? `${result.summary.incident_count} detections reviewed, ${result.timeline.length} stages reconstructed, and ${result.summary.confidence}% confidence earned.`
+              {replayComplete
+                ? `The replay is captured: ${activeCase?.key_evidence_event_ids.length ?? result.summary.incident_count} evidence signals staged, ${
+                    activeCase?.chartData.mappedTactics.filter((count) => count > 0).length ?? result.timeline.length
+                  } timeline stages mapped, and ${activeCase?.confidence ?? result.summary.confidence}% confidence available for analyst review.`
                 : hasActiveInvestigation
                   ? "You have an active case staged. Check the charts, then jump back into the evidence board without losing the scenario."
                   : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
             </p>
             <div className="mt-5 space-y-3">
-              {(investigationComplete
-                ? ["Detections reviewed", "Timeline reconstructed", "Report ready"]
+              {(replayComplete
+                ? ["Telemetry replay captured", "Detections queued", "Timeline ready to inspect"]
                 : hasActiveInvestigation
                   ? ["Review dashboard heat", "Resume the evidence board", "Submit your finding"]
                   : ["Start the replay", "Watch logs appear", "Ask AI what it means"]
@@ -446,19 +448,19 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            {investigationComplete ? (
+            {replayComplete ? (
               <div className="mt-5 grid grid-cols-2 gap-2">
+                <Link
+                  href="/investigation"
+                  className="focus-ring flex h-10 items-center justify-center rounded-[14px] bg-lime text-xs font-bold text-obsidian shadow-lime transition hover:brightness-110"
+                >
+                  Investigate
+                </Link>
                 <Link
                   href="/timeline"
                   className="focus-ring flex h-10 items-center justify-center rounded-[14px] border border-line bg-white/5 text-xs font-semibold text-ink transition hover:border-lime/40"
                 >
                   Timeline
-                </Link>
-                <Link
-                  href="/reports"
-                  className="focus-ring flex h-10 items-center justify-center rounded-[14px] bg-lime text-xs font-bold text-obsidian shadow-lime transition hover:brightness-110"
-                >
-                  Report
                 </Link>
               </div>
             ) : null}
@@ -527,7 +529,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromTactics}
             className={`focus-ring relative block w-full cursor-pointer rounded-[18px] text-left ${isSocView ? "h-[350px]" : "h-72"}`}
-            aria-label={investigationComplete ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
+            aria-label={replayComplete ? "Open attack timeline" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`tactics-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
@@ -559,7 +561,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to {investigationComplete ? "open Timeline" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
+            Click chart to {replayComplete ? "open Timeline" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
 
@@ -574,7 +576,7 @@ export default function DashboardPage() {
             type="button"
             onClick={navigateFromSeverity}
             className={`focus-ring relative block w-full cursor-pointer rounded-[18px] ${isSocView ? "h-[350px]" : "h-72"}`}
-            aria-label={investigationComplete ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
+            aria-label={replayComplete ? "Open detections" : hasActiveInvestigation ? "Resume investigation" : "Start 60-second investigation"}
           >
             {chartsReady ? (
               <ResponsiveContainer key={`severity-${activeCase?.case_id ?? "idle"}-${chartRevision}`} width="100%" height="100%">
@@ -614,7 +616,7 @@ export default function DashboardPage() {
             ) : null}
           </button>
           <p className="technical mt-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            Click chart to {investigationComplete ? "open Detections" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
+            Click chart to {replayComplete ? "open Detections" : hasActiveInvestigation ? "resume Investigation" : "start Investigation"}
           </p>
         </BentoCard>
       </section>
@@ -627,13 +629,13 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="technical text-xs uppercase tracking-[0.24em] text-lime">
-              {investigationComplete ? "Live simulation flow" : "Lab navigation flow"}
+              {replayComplete ? "Active case flow" : "Lab navigation flow"}
             </p>
             <h2 className="mt-2 text-xl font-semibold text-ink">
               {"Builder -> Telemetry -> Detections -> Timeline -> Report"}
             </h2>
           </div>
-          {investigationComplete ? (
+          {replayComplete ? (
             <AlertTriangle aria-hidden className="text-crimson" size={20} />
           ) : (
             <Compass aria-hidden className="text-lime" size={20} />
