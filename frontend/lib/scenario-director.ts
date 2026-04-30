@@ -1996,6 +1996,257 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
         contextualize: false
       }
     ]
+  },
+  "IoT: HVAC Gateway Breach": {
+    family: "IoT: HVAC Gateway Breach",
+    titles: ["IoT: HVAC Gateway Breach", "Facilities Gateway Pivot", "Smart Controller Compromise"],
+    missionBriefings: [
+      "The facility management team reported that the building's climate control system is intermittently unresponsive. IoT gateway telemetry shows outbound connections to a synthetic botnet command channel. The smart controller appears to have been compromised through a legacy management interface. Identify the entry point and ensure the device is not being used to pivot into the corporate network.",
+      "Trace an unauthorized connection originating from the building's smart HVAC controller. Correlate management-port access, shell-like telemetry, outbound heartbeat, and internal discovery."
+    ],
+    operationalGuidance: [
+      "This is a pivot hunt. Correlate the inbound pulse on the management port with discovery sweep signals directed at internal subnets."
+    ],
+    targetUsers: ["facility-mgmt-svc"],
+    targetHosts: ["NYC-IOT-HVAC-01"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["Synthetic IoT gateway emulator", "Facilities-network pivot persona", "Lab-only botnet telemetry actor"],
+    expectedFindings: [
+      "Legacy web management interface received unauthenticated access telemetry",
+      "Smart controller produced shell-like process telemetry",
+      "Outbound heartbeat matched synthetic botnet-style command traffic"
+    ],
+    recommendedResponse: [
+      "Segment the affected HVAC controller from corporate network routes",
+      "Disable legacy management exposure and rotate facility service credentials",
+      "Preserve IoT gateway, DHCP, network, and endpoint telemetry",
+      "Review internal subnet probes from the facilities VLAN"
+    ],
+    preventionLessons: [
+      "Avoid exposing legacy management interfaces",
+      "Monitor IoT devices for outbound command-channel patterns",
+      "Segment facilities networks from corporate production services"
+    ],
+    threatLogs: [
+      {
+        source: "Network",
+        summary: "Unauthenticated access attempt on port 8080 legacy web UI for {host}",
+        plain_english: "The HVAC controller received suspicious access to an older management interface.",
+        severity: "Medium",
+        tags: ["network", "iot", "rce", "inbound"],
+        source_ref: "MITRE T1190"
+      },
+      {
+        source: "Endpoint",
+        summary: "Shell-like process telemetry observed on {host}; command content redacted for safety",
+        plain_english: "The smart controller produced process telemetry consistent with unauthorized command execution, represented safely.",
+        severity: "High",
+        tags: ["endpoint", "iot", "execution", "unix-shell"],
+        source_ref: "MITRE T1059.004"
+      },
+      {
+        source: "Network",
+        summary: "Persistent heartbeat from {host} to reserved lab IP 203.0.113.45 matched synthetic botnet telemetry",
+        plain_english: "The device repeatedly contacted an external lab address after management-port activity.",
+        severity: "Critical",
+        tags: ["network", "botnet", "c2", "iot"],
+        source_ref: "MITRE T1584.005"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Network",
+        summary: "Routine status check-in with manufacturer update server",
+        plain_english: "Expected vendor status traffic is normal for managed IoT devices.",
+        severity: "Low",
+        tags: ["decoy", "iot", "vendor-update"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "Thermostat sensor data logged successfully",
+        plain_english: "Sensor logging is expected building-management telemetry.",
+        severity: "Low",
+        tags: ["decoy", "iot", "sensor"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "IP 10.0.80.5 renewed for NYC-IOT-HVAC-01",
+        plain_english: "A DHCP renewal for the known HVAC host is routine network behavior.",
+        severity: "Low",
+        tags: ["decoy", "dhcp", "iot"],
+        contextualize: false
+      }
+    ]
+  },
+  "Cloud: S3 Bucket Leak": {
+    family: "Cloud: S3 Bucket Leak",
+    titles: ["Cloud: S3 Bucket Leak", "Public Bucket Exposure Review", "Anonymous Cloud Storage Read"],
+    missionBriefings: [
+      "An automated cloud security scan flagged a production storage bucket as publicly readable. Access logs show a sudden spike in requests from various global sources listing the Internal_Invoices folder. Determine whether sensitive files were downloaded and identify who changed the private access policy.",
+      "Investigate unauthorized ListObject-style requests against public-facing cloud storage. Correlate policy modification, anonymous listing, and object download telemetry."
+    ],
+    operationalGuidance: [
+      "Look for the transition from policy change to anonymous read pulse. Correlate the timing of the policy modification with a specific administrative session."
+    ],
+    targetUsers: ["anonymous-cloud-user"],
+    targetHosts: ["CANTON-DATA-S3-PROD"],
+    defaultDifficulty: "Beginner",
+    attackerProfiles: ["Synthetic cloud storage exposure persona", "Cloud misconfiguration training actor", "Lab-only anonymous read emulator"],
+    expectedFindings: [
+      "Storage bucket policy changed from private to public read",
+      "Anonymous ListObjects-style requests spiked against invoice data",
+      "Sensitive archive was downloaded by an anonymous cloud user"
+    ],
+    recommendedResponse: [
+      "Restore private bucket policy and block anonymous read access",
+      "Identify and review the administrative session that changed the policy",
+      "Assess exposure of downloaded invoice and contract artifacts",
+      "Enable or validate cloud storage public-access guardrails"
+    ],
+    preventionLessons: [
+      "Alert on cloud storage policy changes to public access",
+      "Monitor anonymous list and download events",
+      "Enforce public-access blocks and least-privilege admin roles"
+    ],
+    threatLogs: [
+      {
+        source: "Cloud",
+        summary: "Bucket access policy changed from Private to Public-Read on {host}",
+        plain_english: "The storage bucket became readable by anonymous users.",
+        severity: "High",
+        tags: ["cloud", "policy-change", "defense-control", "cloud-storage"],
+        source_ref: "MITRE T1562.001"
+      },
+      {
+        source: "Cloud",
+        summary: "1,200+ anonymous ListObjects-style requests observed against Internal_Invoices",
+        plain_english: "Many anonymous listing requests appeared after the bucket policy changed.",
+        severity: "Medium",
+        tags: ["cloud", "anonymous-read", "collection", "cloud-storage"],
+        source_ref: "MITRE T1530",
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "File 2026_Vendor_Contracts.zip downloaded by anonymous cloud user",
+        plain_english: "A sensitive archive was downloaded after anonymous listing activity.",
+        severity: "Critical",
+        tags: ["cloud", "exfiltration", "cloud-transfer", "cloud-storage"],
+        source_ref: "MITRE T1537",
+        contextualize: false
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Cloud",
+        summary: "Daily inventory report generated for CANTON-DATA-S3-PROD",
+        plain_english: "Inventory generation is expected cloud storage housekeeping.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "inventory"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "User s-backup-bot assumed ReadOnly role for sync job",
+        plain_english: "An approved backup role assumption is not anonymous public access.",
+        severity: "Low",
+        tags: ["decoy", "identity", "cloud"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "DNS query for cloud storage endpoint completed successfully",
+        plain_english: "Resolving a cloud storage endpoint is routine and does not prove data exposure.",
+        severity: "Low",
+        tags: ["decoy", "dns", "cloud"],
+        contextualize: false
+      }
+    ]
+  },
+  "Persistence: WMI Event Hook": {
+    family: "Persistence: WMI Event Hook",
+    titles: ["Persistence: WMI Event Hook", "Domain Controller WMI Persistence", "Boot-Triggered Callback Review"],
+    missionBriefings: [
+      "Following a cleared infection on the primary domain controller, antivirus has remained quiet, but network logs show a brief encrypted outbound signal every time the server reboots. This suggests persistence that does not rely on traditional Run keys or services. Find the WMI event consumer triggering the callback.",
+      "Detect a stealthy persistence mechanism using WMI Event Subscriptions on a domain controller. Correlate WMI namespace changes, boot timing, and sanitized callback telemetry."
+    ],
+    operationalGuidance: [
+      "This is a deep-system hunt. Look for WMI namespace modification involving event filters and consumers, then correlate it with the system boot signal."
+    ],
+    targetUsers: ["SYSTEM"],
+    targetHosts: ["NYC-DC-01"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Synthetic WMI persistence emulator", "Domain-controller persistence training persona", "Lab-only boot callback actor"],
+    expectedFindings: [
+      "WMI event filter and consumer were created in the subscription namespace",
+      "Outbound pulse appeared shortly after system boot",
+      "Sanitized callback telemetry followed the WMI trigger"
+    ],
+    recommendedResponse: [
+      "Review and remove unauthorized WMI event subscriptions through approved procedure",
+      "Preserve WMI repository, endpoint, boot, and network telemetry",
+      "Review recent administrative access to the domain controller",
+      "Validate that persistence artifacts do not reappear after reboot"
+    ],
+    preventionLessons: [
+      "Alert on WMI event subscription creation on domain controllers",
+      "Correlate boot-time network activity with persistence mechanisms",
+      "Restrict administrative access paths to identity infrastructure"
+    ],
+    threatLogs: [
+      {
+        source: "Identity",
+        summary: "New __EventFilter and __EventConsumer created in root/subscription namespace on {host}",
+        plain_english: "A WMI subscription artifact was created in a sensitive namespace on the domain controller.",
+        severity: "High",
+        tags: ["identity", "wmi", "persistence", "event-subscription"],
+        source_ref: "MITRE T1546.003"
+      },
+      {
+        source: "Endpoint",
+        summary: "Outbound pulse initiated 60 seconds after system start on {host}",
+        plain_english: "The domain controller generated outbound network activity shortly after reboot.",
+        severity: "Medium",
+        tags: ["endpoint", "boot", "network", "c2"],
+        source_ref: "MITRE T1071.001"
+      },
+      {
+        source: "Endpoint",
+        summary: "Shell-like callback telemetry observed on {host}; command content redacted for safety",
+        plain_english: "A sanitized callback signal appeared after the boot-linked WMI trigger.",
+        severity: "Critical",
+        tags: ["endpoint", "execution", "script", "persistence"],
+        source_ref: "MITRE T1059.003"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "Winmgmt service started successfully",
+        plain_english: "The Windows Management service starting is expected system behavior.",
+        severity: "Low",
+        tags: ["decoy", "wmi", "service"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "adm-glawson successful login to NYC-DC-01",
+        plain_english: "An administrator login needs context but is not the WMI persistence artifact by itself.",
+        severity: "Low",
+        tags: ["decoy", "identity", "admin"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "Kerberos TGT renewal for NYC-DC-01$",
+        plain_english: "Computer-account ticket renewal is normal domain-controller activity.",
+        severity: "Low",
+        tags: ["decoy", "kerberos", "identity"],
+        contextualize: false
+      }
+    ]
   }
 };
 
@@ -2149,12 +2400,15 @@ function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, 
   if (tags.has("discovery")) return "MITRE T1083";
   if (tags.has("exfiltration") || tags.has("egress")) return "MITRE T1041";
   if (tags.has("c2")) return "MITRE T1071";
+  if (tags.has("botnet")) return "MITRE T1584.005";
   if (tags.has("sharing") || tags.has("collection")) return "MITRE T1530";
   if (tags.has("cloud") || tags.has("post-login")) return "MITRE T1078";
   if (tags.has("remote-admin") || tags.has("east-west") || tags.has("lateral-movement")) return "MITRE T1021";
   if (tags.has("persistence")) return "MITRE T1098";
   if (tags.has("cloud-transfer")) return "MITRE T1537";
+  if (tags.has("cloud-storage")) return "MITRE T1530";
   if (tags.has("registry")) return "MITRE T1547.001";
+  if (tags.has("wmi")) return "MITRE T1546.003";
   if (tags.has("mail-rule")) return "MITRE T1114.003";
   if (tags.has("sniffing")) return "MITRE T1040";
   if (tags.has("adversary-in-middle")) return "MITRE T1557";
@@ -2196,7 +2450,10 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Recon: Password Spraying": 0,
     "BEC: Financial Diversion": 0,
     "SQLi: Customer Data Harvest": 4,
-    "Shadow IT: Rogue Access Point": 3
+    "Shadow IT: Rogue Access Point": 3,
+    "IoT: HVAC Gateway Breach": 3,
+    "Cloud: S3 Bucket Leak": 4,
+    "Persistence: WMI Event Hook": 2
   };
 
   return indexByFamily[family];
@@ -2206,11 +2463,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli")) indexes.add(1);
-  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle")) indexes.add(2);
-  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read")) indexes.add(4);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec") || tags.has("anonymous-read")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli") || tags.has("boot")) indexes.add(1);
+  if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle") || tags.has("wmi") || tags.has("event-subscription")) indexes.add(2);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it") || tags.has("iot")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read") || tags.has("botnet") || tags.has("cloud-storage")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }

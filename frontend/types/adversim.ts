@@ -117,7 +117,10 @@ export type ScenarioFamily =
   | "Recon: Password Spraying"
   | "BEC: Financial Diversion"
   | "SQLi: Customer Data Harvest"
-  | "Shadow IT: Rogue Access Point";
+  | "Shadow IT: Rogue Access Point"
+  | "IoT: HVAC Gateway Breach"
+  | "Cloud: S3 Bucket Leak"
+  | "Persistence: WMI Event Hook";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
