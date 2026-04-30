@@ -18,6 +18,7 @@ import {
   XCircle
 } from "lucide-react";
 import { SeverityBadge } from "@/components/SeverityBadge";
+import { useLiveSimulation } from "@/components/LiveSimulationProvider";
 import { useViewMode } from "@/components/ViewModeProvider";
 import { ViewModeToggle } from "@/components/ViewModeToggle";
 import { publishActiveCaseState } from "@/lib/active-case";
@@ -168,6 +169,13 @@ type ScenarioDirectorLabProps = {
 
 export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabProps) {
   const { isSocView } = useViewMode();
+  const {
+    selectedEvidenceEventIds,
+    setSelectedEvidenceEventIds,
+    investigationDebrief,
+    setInvestigationDebrief,
+    clearInvestigationProgress
+  } = useLiveSimulation();
   const dailyQueue = useMemo(() => generateDailyThreatQueue(), []);
   const isQuickStart = quickStart;
   const [initialCaseState] = useState(() => {
@@ -186,8 +194,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const [caseCounter, setCaseCounter] = useState(6);
   const [quickCaseCounter, setQuickCaseCounter] = useState(1);
   const [caseFile, setCaseFile] = useState<ScenarioCase>(initialCaseState.caseFile);
-  const [selectedEventIds, setSelectedEventIds] = useState<string[]>([]);
-  const [debrief, setDebrief] = useState<CaseDebrief | null>(null);
+  const [draftSelectedEventIds, setDraftSelectedEventIds] = useState<string[]>([]);
+  const [draftDebrief, setDraftDebrief] = useState<CaseDebrief | null>(null);
   const [isBuildingCase, setIsBuildingCase] = useState(initialCaseState.shouldShowInitialBuild);
   const [buildProgress, setBuildProgress] = useState(initialCaseState.shouldShowInitialBuild ? 0 : 1);
   const [caseHistory, setCaseHistory] = useState(() => readCaseHistory());
@@ -250,6 +258,10 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     publishActiveCase(initialCaseState.caseFile);
   }, [initialCaseState.caseFile, isQuickStart]);
 
+  const selectedEventIds = isQuickStart ? selectedEvidenceEventIds : draftSelectedEventIds;
+  const setSelectedEventIds = isQuickStart ? setSelectedEvidenceEventIds : setDraftSelectedEventIds;
+  const debrief = isQuickStart ? investigationDebrief : draftDebrief;
+  const setDebrief = isQuickStart ? setInvestigationDebrief : setDraftDebrief;
   const selectedSet = useMemo(() => new Set(selectedEventIds), [selectedEventIds]);
   const showSeverityBadges = caseFile.difficulty === "Beginner";
   const canRevealSourceTags = expertMode && caseFile.difficulty !== "Expert";
@@ -260,8 +272,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     setCaseFile(nextCase);
     setFamily(nextCase.scenario_family);
     setDifficulty(nextCase.difficulty);
-    setSelectedEventIds([]);
-    setDebrief(null);
+    if (isQuickStart) {
+      clearInvestigationProgress();
+    } else {
+      setDraftSelectedEventIds([]);
+      setDraftDebrief(null);
+    }
 
     if (commit) {
       publishActiveCase(nextCase);
@@ -282,8 +298,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
 
   function stageCaseWithLoading(nextCase: ScenarioCase, { commit = false }: { commit?: boolean } = {}) {
     clearBuildAnimation();
-    setSelectedEventIds([]);
-    setDebrief(null);
+    if (isQuickStart) {
+      clearInvestigationProgress();
+    } else {
+      setDraftSelectedEventIds([]);
+      setDraftDebrief(null);
+    }
     setBuildProgress(0);
     setIsBuildingCase(true);
 
@@ -734,8 +754,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedEventIds([]);
-                    setDebrief(null);
+                    if (isQuickStart) {
+                      clearInvestigationProgress();
+                    } else {
+                      setDraftSelectedEventIds([]);
+                      setDraftDebrief(null);
+                    }
                   }}
                   className="focus-ring h-10 rounded-[14px] border border-line bg-white/5 px-4 text-sm font-semibold text-zinc-300 transition hover:bg-white/10"
                 >

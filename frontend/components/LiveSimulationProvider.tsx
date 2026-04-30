@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import {
   ACTIVE_CASE_CLEARED_EVENT,
   ACTIVE_CASE_EVENT,
@@ -11,7 +11,7 @@ import {
   readActiveCase
 } from "@/lib/active-case";
 import { recordCaseHistory } from "@/lib/case-history";
-import type { CaseChartData, EvidenceEvent, ScenarioCase } from "@/types/adversim";
+import type { CaseChartData, CaseDebrief, EvidenceEvent, ScenarioCase } from "@/types/adversim";
 
 const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"] as const;
 const severityLabels = ["Low", "Medium", "High", "Critical"] as const;
@@ -39,6 +39,11 @@ type LiveSimulationContextValue = {
   progress: number;
   activeStageIndex: number;
   completed: boolean;
+  selectedEvidenceEventIds: string[];
+  setSelectedEvidenceEventIds: Dispatch<SetStateAction<string[]>>;
+  investigationDebrief: CaseDebrief | null;
+  setInvestigationDebrief: Dispatch<SetStateAction<CaseDebrief | null>>;
+  clearInvestigationProgress: () => void;
   startSimulation: (caseFile: ScenarioCase, options?: LiveSimulationOptions) => void;
   purgeEnvironment: () => void;
 };
@@ -130,9 +135,12 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(() => (initialCase?.telemetry_events.length ? 100 : 0));
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [completed, setCompleted] = useState(readCompletedState);
+  const [selectedEvidenceEventIds, setSelectedEvidenceEventIds] = useState<string[]>([]);
+  const [investigationDebrief, setInvestigationDebrief] = useState<CaseDebrief | null>(null);
   const eventIntervalRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
   const streamRef = useRef<ActiveStream | null>(null);
+  const investigationCaseIdRef = useRef<string | null>(initialCase?.case_id ?? null);
 
   const clearTimers = useCallback(() => {
     if (eventIntervalRef.current !== null) {
@@ -144,6 +152,11 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       window.clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
+  }, []);
+
+  const clearInvestigationProgress = useCallback(() => {
+    setSelectedEvidenceEventIds([]);
+    setInvestigationDebrief(null);
   }, []);
 
   const publishVisibleCase = useCallback((caseFile: ScenarioCase, complete = false) => {
@@ -217,6 +230,7 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       setActiveStageIndex(0);
       setIsStreaming(true);
       setCompleted(false);
+      clearInvestigationProgress();
       publishVisibleCase(emptyCase);
       emitNextEvent();
 
@@ -243,7 +257,7 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
         }
       }, 250);
     },
-    [clearTimers, emitNextEvent, finishStream, publishVisibleCase]
+    [clearInvestigationProgress, clearTimers, emitNextEvent, finishStream, publishVisibleCase]
   );
 
   const purgeEnvironment = useCallback(() => {
@@ -255,8 +269,9 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
     setProgress(0);
     setActiveStageIndex(0);
     setCompleted(false);
+    clearInvestigationProgress();
     clearActiveCaseState();
-  }, [clearTimers]);
+  }, [clearInvestigationProgress, clearTimers]);
 
   useEffect(() => {
     function receiveActiveCase(event: Event) {
@@ -280,6 +295,7 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       setProgress(0);
       setActiveStageIndex(0);
       setCompleted(false);
+      clearInvestigationProgress();
     }
 
     window.addEventListener(ACTIVE_CASE_EVENT, receiveActiveCase);
@@ -290,7 +306,18 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       window.removeEventListener(ACTIVE_CASE_CLEARED_EVENT, clearActiveCase);
       clearTimers();
     };
-  }, [clearTimers]);
+  }, [clearInvestigationProgress, clearTimers]);
+
+  useEffect(() => {
+    const nextCaseId = currentCase?.case_id ?? null;
+
+    if (investigationCaseIdRef.current === nextCaseId) {
+      return;
+    }
+
+    investigationCaseIdRef.current = nextCaseId;
+    clearInvestigationProgress();
+  }, [clearInvestigationProgress, currentCase?.case_id]);
 
   const value = useMemo(
     () => ({
@@ -300,10 +327,27 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       progress,
       activeStageIndex,
       completed,
+      selectedEvidenceEventIds,
+      setSelectedEvidenceEventIds,
+      investigationDebrief,
+      setInvestigationDebrief,
+      clearInvestigationProgress,
       startSimulation,
       purgeEnvironment
     }),
-    [activeStageIndex, completed, currentCase, isStreaming, progress, purgeEnvironment, startSimulation, streamedEvents]
+    [
+      activeStageIndex,
+      clearInvestigationProgress,
+      completed,
+      currentCase,
+      investigationDebrief,
+      isStreaming,
+      progress,
+      purgeEnvironment,
+      selectedEvidenceEventIds,
+      startSimulation,
+      streamedEvents
+    ]
   );
 
   return <LiveSimulationContext.Provider value={value}>{children}</LiveSimulationContext.Provider>;
