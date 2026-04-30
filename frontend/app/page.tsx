@@ -53,6 +53,30 @@ const severityColors: Record<string, string> = {
 const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"];
 const severityLabels = ["Low", "Medium", "High", "Critical"];
 
+type HandoffItem = {
+  label: string;
+  href?: string;
+  ariaLabel?: string;
+};
+
+const replayHandoffItems: ReadonlyArray<HandoffItem> = [
+  { label: "Telemetry replay captured", href: "/telemetry", ariaLabel: "Open telemetry replay" },
+  { label: "Detections queued", href: "/detections", ariaLabel: "Open detections" },
+  { label: "Timeline ready to inspect", href: "/timeline", ariaLabel: "Open timeline" }
+];
+
+const activeInvestigationHandoffItems: ReadonlyArray<HandoffItem> = [
+  { label: "Review dashboard heat" },
+  { label: "Resume the evidence board" },
+  { label: "Submit your finding" }
+];
+
+const idleHandoffItems: ReadonlyArray<HandoffItem> = [
+  { label: "Start the replay" },
+  { label: "Watch logs appear" },
+  { label: "Ask AI what it means" }
+];
+
 
 function parseStoredActiveCase(value: string | null) {
   if (!value) {
@@ -277,6 +301,11 @@ export default function DashboardPage() {
     router.push(replayComplete ? "/detections" : "/investigation");
   };
 
+  const handoffItems = replayComplete
+    ? replayHandoffItems
+    : hasActiveInvestigation
+      ? activeInvestigationHandoffItems
+      : idleHandoffItems;
 
   const metrics: Array<{
     label: string;
@@ -436,17 +465,31 @@ export default function DashboardPage() {
                   : "AI stages a fake incident. Your job is to follow the clues, ask what the evidence means, and produce the report."}
             </p>
             <div className="mt-5 space-y-3">
-              {(replayComplete
-                ? ["Telemetry replay captured", "Detections queued", "Timeline ready to inspect"]
-                : hasActiveInvestigation
-                  ? ["Review dashboard heat", "Resume the evidence board", "Submit your finding"]
-                  : ["Start the replay", "Watch logs appear", "Ask AI what it means"]
-              ).map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-[16px] border border-line bg-white/[0.035] px-3 py-3">
-                  <CheckCircle2 aria-hidden size={16} className="text-lime" />
-                  <span className="text-sm text-zinc-300">{item}</span>
-                </div>
-              ))}
+              {handoffItems.map((item) => {
+                const rowClassName =
+                  "flex items-center gap-3 rounded-[16px] border border-line bg-white/[0.035] px-3 py-3 transition";
+                const rowContent = (
+                  <>
+                    <CheckCircle2 aria-hidden size={16} className="text-lime" />
+                    <span className="text-sm text-zinc-300">{item.label}</span>
+                  </>
+                );
+
+                return item.href ? (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    aria-label={item.ariaLabel}
+                    className={`${rowClassName} focus-ring hover:border-lime/40 hover:bg-lime/[0.08] hover:text-ink`}
+                  >
+                    {rowContent}
+                  </Link>
+                ) : (
+                  <div key={item.label} className={rowClassName}>
+                    {rowContent}
+                  </div>
+                );
+              })}
             </div>
             {replayComplete ? (
               <div className="mt-5 grid grid-cols-2 gap-2">
