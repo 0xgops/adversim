@@ -2496,6 +2496,146 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
         contextualize: false
       }
     ]
+  },
+  "SOC: Alert Flood Mask": {
+    family: "SOC: Alert Flood Mask",
+    titles: ["SOC: Alert Flood Mask", "Synthetic Signal Storm", "Noisy Queue Data Theft"],
+    missionBriefings: [
+      "A monitoring integration suddenly generated hundreds of low-risk service-health alerts across unrelated assets. Inside the noise, a cloud collaboration account granted a new OAuth app broad access, created a mail rule, and triggered a high-volume export. Separate the incident narrative from the alert storm.",
+      "Investigate a noisy SOC queue where an alert flood appears to mask identity, cloud, and network signals. Find the few correlated events that reveal the objective."
+    ],
+    operationalGuidance: [
+      "This is a noise-triage case. Ignore volume alone; prioritize events that share identity, time, destination, and post-authentication sequence."
+    ],
+    targetUsers: ["collab.automation", "soc-integration-svc", "mira.lawson@adversim.co"],
+    targetHosts: ["NYC-SOC-SIEM-01", "AZURE-COLLAB-TENANT", "CANTON-SOAR-02"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Alert-storm distraction persona", "Cloud collaboration abuse emulator", "Noisy SOC queue training actor"],
+    expectedFindings: [
+      "Low-risk service-health alerts spiked across unrelated systems",
+      "A new OAuth app consent introduced broad collaboration access",
+      "Mailbox rule and export telemetry aligned with the same account and time window",
+      "Outbound transfer completed while the SOC queue was saturated"
+    ],
+    recommendedResponse: [
+      "Disable the suspicious OAuth application consent and revoke active tokens",
+      "Remove unauthorized mailbox rules and review message access",
+      "Preserve SIEM, SOAR, identity, collaboration, and network telemetry",
+      "Tune alert grouping so service-health floods cannot hide correlated identity events"
+    ],
+    preventionLessons: [
+      "Correlate alert floods with high-impact identity changes",
+      "Require approval for high-scope OAuth consent grants",
+      "Prioritize linked sequences over raw alert volume"
+    ],
+    threatLogs: [
+      {
+        source: "SIEM",
+        summary: "Service-health alert volume jumped 9x across unrelated assets inside a 12-minute queue window",
+        plain_english: "The SOC queue became noisy, but the alerts did not share one normal root cause.",
+        severity: "Medium",
+        tags: ["siem", "alert-flood", "baseline", "correlation"],
+        source_ref: "ATT&CK mapped"
+      },
+      {
+        source: "Cloud",
+        summary: "High-scope OAuth consent granted to Collab Sync Helper for mailbox and file access",
+        plain_english: "A new cloud application received broad access to collaboration data.",
+        severity: "Critical",
+        tags: ["cloud", "identity", "oauth-consent", "privilege"],
+        source_ref: "MITRE T1528"
+      },
+      {
+        source: "Identity",
+        summary: "Mailbox rule created to move security notification messages into Archive Review",
+        plain_english: "A rule changed where security-related messages would appear in the mailbox.",
+        severity: "High",
+        tags: ["identity", "mail-rule", "post-login", "cloud"],
+        source_ref: "MITRE T1114.003"
+      },
+      {
+        source: "Cloud",
+        summary: "Bulk export job queued for shared finance folders by collab.automation",
+        plain_english: "The same collaboration identity started a large data export job.",
+        severity: "High",
+        tags: ["cloud", "collection", "cloud-transfer", "exfiltration"],
+        source_ref: "MITRE T1537"
+      },
+      {
+        source: "Network",
+        summary: "Outbound transfer from collaboration tenant to graph-export.adversim.test exceeded normal export baseline",
+        plain_english: "A large outbound transfer occurred while the SOC queue was saturated with unrelated alerts.",
+        severity: "Critical",
+        tags: ["network", "egress", "exfiltration", "cloud-transfer"],
+        source_ref: "MITRE T1041"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "SIEM",
+        summary: "Disk-space warning cleared automatically on two development hosts",
+        plain_english: "Short-lived capacity warnings are common operational noise.",
+        severity: "Low",
+        tags: ["decoy", "siem", "health"],
+        contextualize: false
+      },
+      {
+        source: "SOAR",
+        summary: "Playbook retry notification generated for an expired test connector",
+        plain_english: "A retry notice from an expired connector does not link to the cloud export sequence.",
+        severity: "Low",
+        tags: ["decoy", "soar", "connector"],
+        contextualize: false
+      },
+      {
+        source: "Cloud",
+        summary: "Teams channel retention job completed for legal archive",
+        plain_english: "Retention processing is expected collaboration platform housekeeping.",
+        severity: "Low",
+        tags: ["decoy", "cloud", "retention"],
+        contextualize: false
+      },
+      {
+        source: "Endpoint",
+        summary: "EDR sensor heartbeat recovered after laptop sleep state",
+        plain_english: "A recovered endpoint heartbeat is normal telemetry churn.",
+        severity: "Low",
+        tags: ["decoy", "endpoint", "heartbeat"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "CDN cache warm-up produced brief outbound spikes from web tier",
+        plain_english: "Cache warm-up traffic has a known source and does not involve the collaboration identity.",
+        severity: "Low",
+        tags: ["decoy", "network", "cdn"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "Password expiration reminders sent to 43 employees",
+        plain_english: "Reminder delivery adds identity noise but is not a sign-in or consent event.",
+        severity: "Low",
+        tags: ["decoy", "auth", "notification"],
+        contextualize: false
+      },
+      {
+        source: "Inventory",
+        summary: "Asset tag reconciliation updated workstation department labels",
+        plain_english: "Inventory metadata changes do not support the export narrative.",
+        severity: "Low",
+        tags: ["decoy", "inventory", "asset"],
+        contextualize: false
+      },
+      {
+        source: "Backup",
+        summary: "Incremental backup completed for HR file archive",
+        plain_english: "Scheduled backup activity is expected and separate from the cloud export.",
+        severity: "Low",
+        tags: ["decoy", "backup", "fileshare"],
+        contextualize: false
+      }
+    ]
   }
 };
 
@@ -2709,7 +2849,8 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Persistence: WMI Event Hook": 2,
     "Physical: BadUSB Parking Lot Drop": 1,
     "Social: AI-Driven Vishing": 0,
-    "Shadow IT: Hardware Implant": 3
+    "Shadow IT: Hardware Implant": 3,
+    "SOC: Alert Flood Mask": 4
   };
 
   return indexByFamily[family];

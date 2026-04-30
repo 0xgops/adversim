@@ -123,7 +123,8 @@ export type ScenarioFamily =
   | "Persistence: WMI Event Hook"
   | "Physical: BadUSB Parking Lot Drop"
   | "Social: AI-Driven Vishing"
-  | "Shadow IT: Hardware Implant";
+  | "Shadow IT: Hardware Implant"
+  | "SOC: Alert Flood Mask";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
