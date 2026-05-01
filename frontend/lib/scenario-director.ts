@@ -2636,6 +2636,256 @@ export const scenarioPackages: Record<ScenarioFamily, ScenarioPackage> = {
         contextualize: false
       }
     ]
+  },
+  "Physical: Cold Boot Memory Dump": {
+    family: "Physical: Cold Boot Memory Dump",
+    titles: ["Physical: Cold Boot Memory Dump", "Executive Workstation Hard-Reset Review", "Memory Recovery Window"],
+    missionBriefings: [
+      "Security camera telemetry flagged brief access to a locked executive workstation. System logs show a hard reset without a standard shutdown path, followed by an external boot sequence and memory-recovery indicators. Identify which session material may have been exposed during the cold-boot window.",
+      "Detect unauthorized memory recovery following a physical hard reset of a high-value workstation. Correlate power-cycle, boot-loader, and memory-access telemetry."
+    ],
+    operationalGuidance: [
+      "Look for a system boot signal that lacks a corresponding clean shutdown event. Correlate it with unauthorized boot-loader activity and external storage telemetry."
+    ],
+    targetUsers: ["exec-admin-01", "ceo.exec", "legal.review"],
+    targetHosts: ["NYC-EXEC-WKST-01", "NYC-HQ-EXEC-07"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Physical workstation access emulator", "Cold-boot recovery training persona", "Executive endpoint exposure scenario"],
+    expectedFindings: [
+      "Power-cycle telemetry appeared without a clean shutdown event",
+      "External boot sequence showed a signature mismatch",
+      "Memory-recovery telemetry aligned with the same physical-access window"
+    ],
+    recommendedResponse: [
+      "Preserve endpoint boot, power, USB, and physical access telemetry",
+      "Invalidate active sessions and rotate sensitive tokens for the affected user",
+      "Review full-disk encryption posture and pre-boot authentication controls",
+      "Validate workstation lock-screen and device-control policy coverage"
+    ],
+    preventionLessons: [
+      "Require pre-boot authentication for high-value workstations",
+      "Alert on hard resets without clean shutdown events",
+      "Monitor external boot attempts and removable storage access"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "System power-cycle detected on {host} without ACPI clean-shutdown telemetry",
+        plain_english: "The workstation restarted in a way that does not match normal shutdown behavior.",
+        severity: "High",
+        tags: ["endpoint", "physical-access", "boot", "hard-reset"],
+        source_ref: "MITRE T1529"
+      },
+      {
+        source: "Endpoint",
+        summary: "Boot sequence initiated from external USB interface on {host}; boot signature mismatch recorded",
+        plain_english: "The workstation appeared to start from an external interface rather than the expected disk path.",
+        severity: "Critical",
+        tags: ["endpoint", "bootloader", "hardware", "physical-access"],
+        source_ref: "MITRE T1067"
+      },
+      {
+        source: "Endpoint",
+        summary: "Large linear memory-read telemetry recorded to external storage; content metadata only",
+        plain_english: "The host produced evidence consistent with memory recovery during the physical-access window.",
+        severity: "Critical",
+        tags: ["endpoint", "memory-dump", "credential-access", "collection"],
+        source_ref: "MITRE T1003"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "Windows Error Reporting service started after unexpected shutdown",
+        plain_english: "This is expected cleanup behavior after an abnormal restart.",
+        severity: "Low",
+        tags: ["decoy", "service", "boot"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "adm-glawson successful login to NYC-OFFICE-01",
+        plain_english: "This administrator login occurred on a different host and does not fit the physical-access window.",
+        severity: "Low",
+        tags: ["decoy", "auth", "admin"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Clock synchronized with internal time server",
+        plain_english: "Time synchronization after restart is normal workstation behavior.",
+        severity: "Low",
+        tags: ["decoy", "ntp", "network"],
+        contextualize: false
+      }
+    ]
+  },
+  "Shadow IT: Malicious Peripheral Pivot": {
+    family: "Shadow IT: Malicious Peripheral Pivot",
+    titles: ["Shadow IT: Malicious Peripheral Pivot", "Smart Cable Network Bridge", "Conference Room Peripheral Pivot"],
+    missionBriefings: [
+      "An employee reported a charging cable left behind in the main conference room. Telemetry from a connected laptop shows a new hidden network interface shortly after the cable was plugged in. The peripheral appears to bridge the internal network to an external wireless path. Identify the pivot path and confirm which internal subnets were scanned.",
+      "Trace a stealthy network bridge created by a smart charging cable in a public area. Correlate USB network-interface creation, bridge routing, and low-frequency outbound telemetry."
+    ],
+    operationalGuidance: [
+      "Focus on USB NIC detection. If a network interface appears through a USB port that is not a known dock, correlate it with unauthorized bridge and outbound routing signals."
+    ],
+    targetUsers: ["conference-room-guest", "facilities.temp", "events.coordinator"],
+    targetHosts: ["NYC-CONF-WKST-04", "NYC-HQ-MEET-11"],
+    defaultDifficulty: "Expert",
+    attackerProfiles: ["Malicious peripheral training persona", "Conference-room pivot emulator", "Shadow IT hardware access scenario"],
+    expectedFindings: [
+      "A USB-attached network interface appeared on the conference workstation",
+      "Traffic routing bridged the internal Ethernet path to a rogue wireless interface",
+      "Outbound pulse and subnet scan telemetry followed the bridge event"
+    ],
+    recommendedResponse: [
+      "Disable the new interface and isolate the affected workstation",
+      "Preserve USB device, network interface, DHCP, and routing telemetry",
+      "Review internal subnet access during the bridge window",
+      "Enforce device control for unknown USB network adapters"
+    ],
+    preventionLessons: [
+      "Block unapproved USB network devices by policy",
+      "Alert on new NIC creation from USB hubs",
+      "Treat abandoned peripherals as security artifacts, not convenience items"
+    ],
+    threatLogs: [
+      {
+        source: "Endpoint",
+        summary: "New 802.11 network interface detected through USB hub port on {host}",
+        plain_english: "A charging-cable-like peripheral introduced a new wireless network interface.",
+        severity: "Medium",
+        tags: ["endpoint", "usb-nic", "hardware", "peripheral-pivot"],
+        source_ref: "MITRE T1200"
+      },
+      {
+        source: "Network",
+        summary: "Traffic routing detected between internal Ethernet and unapproved USB wireless interface",
+        plain_english: "The host appeared to bridge trusted internal traffic to a new wireless path.",
+        severity: "Critical",
+        tags: ["network", "bridge", "unauthorized-bridge", "exfiltration"],
+        source_ref: "MITRE T1020"
+      },
+      {
+        source: "Network",
+        summary: "Low-frequency outbound pulse detected to Hidden_Gateway lab SSID; packet content metadata only",
+        plain_english: "The bridged interface generated outbound traffic after the peripheral appeared.",
+        severity: "High",
+        tags: ["network", "egress", "peripheral-pivot", "wireless"],
+        source_ref: "MITRE T1041"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Endpoint",
+        summary: "Standard USB optical mouse connected to NYC-CONF-WKST-04",
+        plain_english: "A known basic input device does not create network routes.",
+        severity: "Low",
+        tags: ["decoy", "usb", "peripheral"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Routine background scan for authorized corporate Wi-Fi SSIDs",
+        plain_english: "Expected wireless discovery does not create a bridge to internal Ethernet.",
+        severity: "Low",
+        tags: ["decoy", "wireless", "scan"],
+        contextualize: false
+      },
+      {
+        source: "Auth",
+        summary: "IP 192.168.10.44 assigned to legitimate dock interface",
+        plain_english: "This DHCP lease belongs to approved dock hardware, not the suspicious USB wireless interface.",
+        severity: "Low",
+        tags: ["decoy", "dhcp", "dock"],
+        contextualize: false
+      }
+    ]
+  },
+  "Social: MFA Fatigue Exploit": {
+    family: "Social: MFA Fatigue Exploit",
+    titles: ["Social: MFA Fatigue Exploit", "Success After Storm", "VPN Push Fatigue Case"],
+    missionBriefings: [
+      "At approximately 3:00 AM, the identity provider logged a rapid series of MFA push notifications for a single user. After repeated denials, one approval was recorded, immediately followed by a VPN login from a region that does not match the user's normal pattern. Identify the source pattern and determine what resources were touched during the session.",
+      "Identify an account compromise resulting from an MFA push storm. Correlate denied requests, one accepted challenge, geographic mismatch, and VPN session activity."
+    ],
+    operationalGuidance: [
+      "This is a success-after-storm pattern. Correlate high-volume MFA denials with a single MFA success and a geo-mismatch VPN login."
+    ],
+    targetUsers: ["s-rodriguez", "finance.approver", "mfa.user.17"],
+    targetHosts: ["NYC-VPN-GATEWAY", "AZURE-AD-SYNC"],
+    defaultDifficulty: "Intermediate",
+    attackerProfiles: ["MFA fatigue training persona", "Identity pressure emulator", "VPN account misuse scenario"],
+    expectedFindings: [
+      "MFA push denials spiked for one user in a short window",
+      "One MFA success appeared after repeated denials",
+      "VPN login followed from a mismatched source region",
+      "Post-login resource access should be reviewed as part of containment"
+    ],
+    recommendedResponse: [
+      "Revoke active sessions for the affected account",
+      "Reset credentials and require phishing-resistant MFA re-enrollment",
+      "Review VPN session logs and accessed internal resources",
+      "Tune identity rules for push storms followed by success"
+    ],
+    preventionLessons: [
+      "Alert on repeated MFA denials followed by success",
+      "Use number matching or phishing-resistant MFA",
+      "Correlate identity pressure with VPN and application access"
+    ],
+    threatLogs: [
+      {
+        source: "Auth",
+        summary: "50+ MFA push notifications rejected by {user} within 10 minutes",
+        plain_english: "The account received many MFA requests and denied them repeatedly.",
+        severity: "High",
+        tags: ["auth", "mfa-storm", "credential-access", "identity"],
+        source_ref: "MITRE T1621"
+      },
+      {
+        source: "Auth",
+        summary: "Single MFA challenge accepted for {user} after repeated denials",
+        plain_english: "One MFA approval landed after the pressure pattern.",
+        severity: "Medium",
+        tags: ["auth", "mfa-fatigue", "identity", "credential-access"],
+        source_ref: "MITRE T1621"
+      },
+      {
+        source: "Auth",
+        summary: "Successful VPN login for {user} from reserved lab IP 198.51.100.91 with geographic mismatch",
+        plain_english: "The approved sign-in led to VPN access from a source that does not match the user's baseline.",
+        severity: "Critical",
+        tags: ["auth", "vpn", "valid-accounts", "remote-access"],
+        source_ref: "MITRE T1078"
+      }
+    ],
+    backgroundNoise: [
+      {
+        source: "Auth",
+        summary: "User k-thompson successfully reset password via self-service portal",
+        plain_english: "A normal self-service reset for another user is not part of the MFA storm.",
+        severity: "Low",
+        tags: ["decoy", "auth", "password-reset"],
+        contextualize: false
+      },
+      {
+        source: "Identity",
+        summary: "Routine OAuth token refresh for mobile mail client",
+        plain_english: "Expected token refresh activity does not show user approval pressure.",
+        severity: "Low",
+        tags: ["decoy", "identity", "token-refresh"],
+        contextualize: false
+      },
+      {
+        source: "Network",
+        summary: "Legitimate session for d-white terminated normally",
+        plain_english: "A normal VPN session end for another user is unrelated to the suspicious login.",
+        severity: "Low",
+        tags: ["decoy", "vpn", "session"],
+        contextualize: false
+      }
+    ]
   }
 };
 
@@ -2784,6 +3034,9 @@ function sourceRefForEvent(family: ScenarioFamily, event: ScenarioEventPackage, 
   if (tags.has("vishing")) return "MITRE T1566.003";
   if (tags.has("hardware-implant") || tags.has("bridge")) return "MITRE T1018";
   if (tags.has("pcap")) return "MITRE T1074";
+  if (tags.has("bootloader")) return "MITRE T1067";
+  if (tags.has("memory-dump")) return "MITRE T1003";
+  if (tags.has("mfa-storm") || tags.has("mfa-fatigue")) return "MITRE T1621";
   if (tags.has("credential-access")) return "MITRE T1110";
   if (tags.has("rdp")) return "MITRE T1021.001";
   if (tags.has("initial-access")) return "MITRE T1078";
@@ -2850,7 +3103,10 @@ function primaryTacticIndex(family: ScenarioFamily) {
     "Physical: BadUSB Parking Lot Drop": 1,
     "Social: AI-Driven Vishing": 0,
     "Shadow IT: Hardware Implant": 3,
-    "SOC: Alert Flood Mask": 4
+    "SOC: Alert Flood Mask": 4,
+    "Physical: Cold Boot Memory Dump": 0,
+    "Shadow IT: Malicious Peripheral Pivot": 3,
+    "Social: MFA Fatigue Exploit": 0
   };
 
   return indexByFamily[family];
@@ -2860,11 +3116,11 @@ function tacticIndexesForEvent(event: EvidenceEvent) {
   const tags = new Set(event.tags);
   const indexes = new Set<number>();
 
-  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec") || tags.has("anonymous-read") || tags.has("vishing") || tags.has("valid-accounts")) indexes.add(0);
-  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli") || tags.has("boot") || tags.has("hid") || tags.has("shell")) indexes.add(1);
+  if (tags.has("credential-access") || tags.has("identity") || tags.has("cloud") || tags.has("phishing") || tags.has("email") || tags.has("rdp") || tags.has("local-account") || tags.has("session-hijack") || tags.has("password-spray") || tags.has("vpn") || tags.has("remote-access") || tags.has("bec") || tags.has("anonymous-read") || tags.has("vishing") || tags.has("valid-accounts") || tags.has("memory-dump") || tags.has("mfa-storm") || tags.has("mfa-fatigue")) indexes.add(0);
+  if (tags.has("execution") || tags.has("script") || tags.has("process") || tags.has("edr") || tags.has("staging") || tags.has("impact-prevention") || tags.has("ci") || tags.has("application") || tags.has("encryption-test") || tags.has("ransomware") || tags.has("rce") || tags.has("unix-shell") || tags.has("resource-hijacking") || tags.has("scheduled-task") || tags.has("sqli") || tags.has("boot") || tags.has("hid") || tags.has("shell") || tags.has("bootloader")) indexes.add(1);
   if (tags.has("privilege") || tags.has("privilege-review") || tags.has("remote-admin") || tags.has("repository") || tags.has("persistence") || tags.has("registry") || tags.has("defense-control") || tags.has("policy-change") || tags.has("adversary-in-middle") || tags.has("wmi") || tags.has("event-subscription") || tags.has("account-manipulation")) indexes.add(2);
-  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it") || tags.has("iot") || tags.has("hardware-implant") || tags.has("bridge") || tags.has("remote-system-discovery")) indexes.add(3);
-  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read") || tags.has("botnet") || tags.has("cloud-storage") || tags.has("pcap") || tags.has("post-execution")) indexes.add(4);
+  if (tags.has("discovery") || tags.has("fileshare") || tags.has("collection") || tags.has("baseline") || tags.has("east-west") || tags.has("lateral-movement") || tags.has("correlation") || tags.has("file-change") || tags.has("api") || tags.has("supply-chain") || tags.has("rogue-ap") || tags.has("wireless") || tags.has("shadow-it") || tags.has("iot") || tags.has("hardware-implant") || tags.has("bridge") || tags.has("remote-system-discovery") || tags.has("peripheral-pivot") || tags.has("usb-nic") || tags.has("hard-reset")) indexes.add(3);
+  if (tags.has("exfiltration") || tags.has("egress") || tags.has("sharing") || tags.has("network") || tags.has("dlp") || tags.has("saas") || tags.has("post-login") || tags.has("waf") || tags.has("c2") || tags.has("cloud-transfer") || tags.has("mail-rule") || tags.has("sniffing") || tags.has("db-read") || tags.has("botnet") || tags.has("cloud-storage") || tags.has("pcap") || tags.has("post-execution") || tags.has("unauthorized-bridge")) indexes.add(4);
 
   return indexes.size ? Array.from(indexes) : [3];
 }

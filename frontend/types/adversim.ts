@@ -124,7 +124,10 @@ export type ScenarioFamily =
   | "Physical: BadUSB Parking Lot Drop"
   | "Social: AI-Driven Vishing"
   | "Shadow IT: Hardware Implant"
-  | "SOC: Alert Flood Mask";
+  | "SOC: Alert Flood Mask"
+  | "Physical: Cold Boot Memory Dump"
+  | "Shadow IT: Malicious Peripheral Pivot"
+  | "Social: MFA Fatigue Exploit";
 
 export type ScenarioDifficulty = "Beginner" | "Intermediate" | "Expert";
 export type ScenarioRandomness = "Low" | "Medium" | "Chaos Lab";
