@@ -222,6 +222,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const [caseFile, setCaseFile] = useState<ScenarioCase>(initialCaseState.caseFile);
   const [draftSelectedEventIds, setDraftSelectedEventIds] = useState<string[]>([]);
   const [draftDebrief, setDraftDebrief] = useState<CaseDebrief | null>(null);
+  const [hasLaunchedCustomCase, setHasLaunchedCustomCase] = useState(isQuickStart);
   const [isBuildingCase, setIsBuildingCase] = useState(initialCaseState.shouldShowInitialBuild);
   const [buildProgress, setBuildProgress] = useState(initialCaseState.shouldShowInitialBuild ? 0 : 1);
   const [caseHistory, setCaseHistory] = useState(() => readCaseHistory());
@@ -295,11 +296,43 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const decoyCount = caseFile.decoy_event_ids.length;
   const isReplayStillStaging = isQuickStart && isStreaming;
   const submitFindingDisabled = selectedEventIds.length === 0 || Boolean(debrief) || isReplayStillStaging;
+  const shouldShowInvestigationBoard = isQuickStart || hasLaunchedCustomCase;
+
+  function markCustomDraftChanged() {
+    if (isQuickStart) {
+      return;
+    }
+
+    setHasLaunchedCustomCase(false);
+    setDraftSelectedEventIds([]);
+    setDraftDebrief(null);
+  }
+
+  function updateDraftFamily(nextFamily: ScenarioFamily) {
+    setFamily(nextFamily);
+    markCustomDraftChanged();
+  }
+
+  function updateDraftDifficulty(nextDifficulty: ScenarioDifficulty) {
+    setDifficulty(nextDifficulty);
+    markCustomDraftChanged();
+  }
+
+  function updateDraftRandomness(nextRandomness: ScenarioRandomness) {
+    setRandomness(nextRandomness);
+    markCustomDraftChanged();
+  }
+
+  function updateDraftTrainingMode(nextTrainingMode: TrainingMode) {
+    setTrainingMode(nextTrainingMode);
+    markCustomDraftChanged();
+  }
 
   function loadCase(nextCase: ScenarioCase, { commit = false }: { commit?: boolean } = {}) {
     setCaseFile(nextCase);
     setFamily(nextCase.scenario_family);
     setDifficulty(nextCase.difficulty);
+    setHasLaunchedCustomCase(isQuickStart || commit);
     if (isQuickStart) {
       clearInvestigationProgress();
     } else {
@@ -496,7 +529,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Scenario family</p>
                 <div className="grid gap-2">
                   {scenarioFamilies.map((item) => (
-                    <OptionButton key={item} active={family === item} onClick={() => setFamily(item)}>
+                    <OptionButton key={item} active={family === item} onClick={() => updateDraftFamily(item)}>
                       {item}
                     </OptionButton>
                   ))}
@@ -507,7 +540,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Difficulty</p>
                 <div className="grid grid-cols-2 gap-2">
                   {scenarioDifficulties.map((item) => (
-                    <OptionButton key={item} active={difficulty === item} onClick={() => setDifficulty(item)}>
+                    <OptionButton key={item} active={difficulty === item} onClick={() => updateDraftDifficulty(item)}>
                       {item}
                     </OptionButton>
                   ))}
@@ -518,7 +551,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Randomness</p>
                 <div className="grid gap-2">
                   {scenarioRandomnessLevels.map((item) => (
-                    <OptionButton key={item} active={randomness === item} onClick={() => setRandomness(item)}>
+                    <OptionButton key={item} active={randomness === item} onClick={() => updateDraftRandomness(item)}>
                       {item}
                     </OptionButton>
                   ))}
@@ -529,7 +562,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 <p className="technical mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-500">Training mode</p>
                 <div className="grid gap-2">
                   {trainingModes.map((item) => (
-                    <OptionButton key={item} active={trainingMode === item} onClick={() => setTrainingMode(item)}>
+                    <OptionButton key={item} active={trainingMode === item} onClick={() => updateDraftTrainingMode(item)}>
                       {item}
                     </OptionButton>
                   ))}
@@ -609,6 +642,58 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
         ) : null}
 
         <div className={`space-y-5 ${isSocView ? "soc-dense-stack" : ""}`}>
+          {!shouldShowInvestigationBoard ? (
+            <GlassCard className="guide-glass">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="max-w-3xl">
+                  <p className="technical text-xs uppercase tracking-[0.24em] text-lime">Custom Lab Draft</p>
+                  <h1 className={`${isSocView ? "mt-1 text-2xl sm:text-3xl" : "mt-2 text-3xl sm:text-4xl"} font-semibold text-ink`}>
+                    Configure the lab before staging evidence.
+                  </h1>
+                  <p className={`${isSocView ? "soc-terminal-copy mt-2" : "mt-3 text-base leading-7"} text-zinc-300`}>
+                    Draft settings stay local to Custom Lab. The Dashboard, Timeline, Detections, Telemetry, and Reports update only after you launch the investigation.
+                  </p>
+                </div>
+                <span className="technical inline-flex h-8 items-center rounded-full border border-line bg-black/25 px-3 text-[10px] uppercase tracking-[0.18em] text-zinc-400">
+                  Sandbox mode
+                </span>
+              </div>
+
+              <div className={`grid md:grid-cols-4 ${isSocView ? "mt-3 gap-2" : "mt-6 gap-3"}`}>
+                {[
+                  ["Scenario family", family],
+                  ["Difficulty", difficulty],
+                  ["Randomness", randomness],
+                  ["Training mode", trainingMode]
+                ].map(([label, value]) => (
+                  <div key={label} className={`soc-compact-card rounded-[18px] border border-line bg-black/25 ${isSocView ? "p-3" : "p-4"}`}>
+                    <p className="technical text-[10px] uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+                    <p className="mt-2 text-sm font-semibold leading-5 text-ink">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className={`rounded-[20px] border border-lime/25 bg-lime/[0.06] ${isSocView ? "mt-3 p-3" : "mt-6 p-4"}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="technical text-[10px] uppercase tracking-[0.2em] text-lime">Ready to stage</p>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                      Launching samples threat logs, injects background noise, publishes the active case, and opens the evidence board for analysis.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateNewCase}
+                    className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-[15px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110"
+                  >
+                    <RefreshCw aria-hidden size={16} />
+                    Start Custom Investigation
+                  </button>
+                </div>
+              </div>
+            </GlassCard>
+          ) : (
+            <>
           <GlassCard className={isQuickStart ? (isSocView ? "" : "guide-glass") : ""}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="max-w-3xl">
@@ -633,7 +718,7 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                       <button
                         key={item}
                         type="button"
-                        onClick={() => setDifficulty(item)}
+                        onClick={() => updateDraftDifficulty(item)}
                         className={`focus-ring technical h-7 rounded-[10px] px-2 text-[9px] uppercase tracking-[0.12em] transition ${difficultyBadgeTone(item, difficulty === item)}`}
                         aria-pressed={difficulty === item}
                       >
@@ -900,6 +985,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
               </div>
             </GlassCard>
           ) : null}
+            </>
+          )}
         </div>
       </section>
     </div>
