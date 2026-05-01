@@ -53,6 +53,34 @@ const severityColors: Record<string, string> = {
 const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"];
 const severityLabels = ["Low", "Medium", "High", "Critical"];
 
+const labFlowItems = [
+  {
+    label: "Builder",
+    href: "/builder",
+    description: "Configure the attack vectors and synthetic environment."
+  },
+  {
+    label: "Telemetry",
+    href: "/telemetry",
+    description: "Monitor raw log streams and identify anomalous activity."
+  },
+  {
+    label: "Detections",
+    href: "/detections",
+    description: "Correlate events into high-fidelity security alerts."
+  },
+  {
+    label: "Timeline",
+    href: "/timeline",
+    description: "Map the attack sequence across the MITRE ATT&CK framework."
+  },
+  {
+    label: "Report",
+    href: "/reports",
+    description: "Summarize findings and provide remediation guidance."
+  }
+] as const;
+
 type HandoffItem = {
   label: string;
   href?: string;
@@ -688,11 +716,22 @@ export default function DashboardPage() {
           )}
         </div>
         <div className={`grid md:grid-cols-5 ${isSocView ? "mt-3 gap-2" : "mt-5 gap-3"}`}>
-          {["Builder", "Telemetry", "Detections", "Timeline", "Report"].map((step, index) => (
-            <div key={step} className={`soc-compact-card rounded-[18px] border border-line bg-black/25 ${isSocView ? "p-2" : "p-4"}`}>
-              <p className="technical text-[11px] uppercase tracking-[0.22em] text-zinc-500">0{index + 1}</p>
-              <p className="mt-3 text-sm font-semibold text-ink">{step}</p>
-            </div>
+          {labFlowItems.map((step, index) => (
+            <Link
+              key={step.href}
+              href={step.href}
+              aria-label={`Open ${step.label}. ${step.description}`}
+              className={`soc-compact-card group relative rounded-[18px] border border-line bg-black/25 transition duration-200 hover:-translate-y-0.5 hover:border-lime/40 hover:bg-lime/[0.055] focus-ring ${isSocView ? "p-2" : "p-4"}`}
+            >
+              <p className="technical text-[11px] uppercase tracking-[0.22em] text-zinc-500 transition group-hover:text-lime/80 group-focus:text-lime/80">
+                0{index + 1}
+              </p>
+              <p className="mt-3 text-sm font-semibold text-ink">{step.label}</p>
+              <div className="pointer-events-none absolute left-1/2 top-[calc(100%+10px)] z-50 w-64 -translate-x-1/2 translate-y-1 rounded-[16px] border border-lime/20 bg-panel/95 px-3 py-2 text-left opacity-0 shadow-lime backdrop-blur-[22px] transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus:translate-y-0 group-focus:opacity-100">
+                <p className="technical text-[10px] uppercase tracking-[0.18em] text-lime">{step.label}</p>
+                <p className="mt-1 text-xs leading-5 text-zinc-300">{step.description}</p>
+              </div>
+            </Link>
           ))}
         </div>
       </motion.section>
