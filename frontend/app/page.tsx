@@ -709,11 +709,29 @@ export default function DashboardPage() {
               {"Builder -> Telemetry -> Detections -> Timeline -> Report"}
             </h2>
           </div>
-          {replayComplete ? (
-            <AlertTriangle aria-hidden className="text-crimson" size={20} />
-          ) : (
-            <Compass aria-hidden className="text-lime" size={20} />
-          )}
+          <div className="group/flowstatus relative">
+            <button
+              type="button"
+              className={`focus-ring grid h-9 w-9 place-items-center rounded-[13px] border bg-black/25 transition ${
+                replayComplete
+                  ? "border-crimson/30 text-crimson hover:bg-crimson/10"
+                  : "border-lime/25 text-lime hover:bg-lime/10"
+              }`}
+              aria-label={replayComplete ? "Explain active case status" : "Explain lab navigation status"}
+            >
+              {replayComplete ? <AlertTriangle aria-hidden size={18} /> : <Compass aria-hidden size={18} />}
+            </button>
+            <div className="pointer-events-none absolute right-0 top-11 z-[90] w-72 translate-y-1 rounded-[16px] border border-lime/20 bg-panel/95 px-3 py-2 text-left opacity-0 shadow-lime backdrop-blur-[22px] transition duration-150 group-hover/flowstatus:translate-y-0 group-hover/flowstatus:opacity-100 group-focus-within/flowstatus:translate-y-0 group-focus-within/flowstatus:opacity-100">
+              <p className={`technical text-[10px] uppercase tracking-[0.18em] ${replayComplete ? "text-crimson" : "text-lime"}`}>
+                {replayComplete ? "Investigation ready" : "Navigation guide"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-zinc-300">
+                {replayComplete
+                  ? "Replay capture is complete. Open Investigation, Detections, Timeline, or Reports to review the staged evidence."
+                  : "Use the flow blocks as shortcuts through the lab: build, observe telemetry, correlate detections, reconstruct timeline, then report."}
+              </p>
+            </div>
+          </div>
         </div>
         <div className={`grid md:grid-cols-5 ${isSocView ? "mt-3 gap-2" : "mt-5 gap-3"}`}>
           {labFlowItems.map((step, index) => (

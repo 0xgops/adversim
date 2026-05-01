@@ -199,7 +199,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
     setSelectedEvidenceEventIds,
     investigationDebrief,
     setInvestigationDebrief,
-    clearInvestigationProgress
+    clearInvestigationProgress,
+    isStreaming
   } = useLiveSimulation();
   const dailyQueue = useMemo(() => generateDailyThreatQueue(), []);
   const isQuickStart = quickStart;
@@ -292,6 +293,8 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   const canRevealSourceTags = expertMode && caseFile.difficulty !== "Expert";
   const keyCount = caseFile.key_evidence_event_ids.length;
   const decoyCount = caseFile.decoy_event_ids.length;
+  const isReplayStillStaging = isQuickStart && isStreaming;
+  const submitFindingDisabled = selectedEventIds.length === 0 || Boolean(debrief) || isReplayStillStaging;
 
   function loadCase(nextCase: ScenarioCase, { commit = false }: { commit?: boolean } = {}) {
     setCaseFile(nextCase);
@@ -378,6 +381,10 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
   }
 
   function submitFinding() {
+    if (submitFindingDisabled) {
+      return;
+    }
+
     setDebrief(gradeEvidenceSelection(caseFile, selectedEventIds));
   }
 
@@ -771,7 +778,15 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
 
             <div className={`soc-compact-card flex flex-wrap items-center justify-between rounded-[20px] border border-line bg-black/30 ${isSocView ? "mt-3 gap-2 p-3" : "mt-5 gap-3 p-4"}`}>
               <p className={`${isSocView ? "soc-terminal-copy" : "text-sm leading-6"} text-zinc-400`}>
-                Selected <span className="text-lime">{selectedEventIds.length}</span> events. Submit when your finding tells a clear story.
+                {isReplayStillStaging ? (
+                  <>
+                    Replay is still staging the full evidence set. Submit unlocks when capture is complete.
+                  </>
+                ) : (
+                  <>
+                    Selected <span className="text-lime">{selectedEventIds.length}</span> events. Submit when your finding tells a clear story.
+                  </>
+                )}
               </p>
               <div className="flex gap-2">
                 <button
@@ -790,12 +805,12 @@ export function ScenarioDirectorLab({ quickStart = false }: ScenarioDirectorLabP
                 </button>
                 <button
                   type="button"
-                  disabled={selectedEventIds.length === 0 || Boolean(debrief)}
+                  disabled={submitFindingDisabled}
                   onClick={submitFinding}
                   className="focus-ring flex h-10 items-center gap-2 rounded-[14px] bg-lime px-4 text-sm font-bold text-obsidian shadow-lime transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
                 >
-                  <ClipboardCheck aria-hidden size={16} />
-                  Submit Finding
+                  {isReplayStillStaging ? <RefreshCw aria-hidden size={16} className="animate-spin" /> : <ClipboardCheck aria-hidden size={16} />}
+                  {isReplayStillStaging ? "Staging Replay" : "Submit Finding"}
                 </button>
               </div>
             </div>
