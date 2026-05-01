@@ -10,8 +10,9 @@ import {
   publishActiveCaseState,
   readActiveCase
 } from "@/lib/active-case";
+import { defaultBuilderRequest, readInitialBuilderRequest } from "@/lib/builder-request";
 import { recordCaseHistory } from "@/lib/case-history";
-import type { CaseChartData, CaseDebrief, EvidenceEvent, ScenarioCase } from "@/types/adversim";
+import type { CaseChartData, CaseDebrief, EvidenceEvent, ScenarioCase, SimulationRequest } from "@/types/adversim";
 
 const tacticLabels = ["Credential Access", "Execution", "Privilege Escalation", "Discovery", "Exfiltration"] as const;
 const severityLabels = ["Low", "Medium", "High", "Critical"] as const;
@@ -39,6 +40,8 @@ type LiveSimulationContextValue = {
   progress: number;
   activeStageIndex: number;
   completed: boolean;
+  builderRequest: SimulationRequest;
+  setBuilderRequest: Dispatch<SetStateAction<SimulationRequest>>;
   selectedEvidenceEventIds: string[];
   setSelectedEvidenceEventIds: Dispatch<SetStateAction<string[]>>;
   investigationDebrief: CaseDebrief | null;
@@ -135,6 +138,7 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(() => (initialCase?.telemetry_events.length ? 100 : 0));
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [completed, setCompleted] = useState(readCompletedState);
+  const [builderRequest, setBuilderRequest] = useState<SimulationRequest>(readInitialBuilderRequest);
   const [selectedEvidenceEventIds, setSelectedEvidenceEventIds] = useState<string[]>([]);
   const [investigationDebrief, setInvestigationDebrief] = useState<CaseDebrief | null>(null);
   const eventIntervalRef = useRef<number | null>(null);
@@ -269,6 +273,8 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
     setProgress(0);
     setActiveStageIndex(0);
     setCompleted(false);
+    window.localStorage.removeItem("adversim-guided-launch");
+    setBuilderRequest(defaultBuilderRequest);
     clearInvestigationProgress();
     clearActiveCaseState();
   }, [clearInvestigationProgress, clearTimers]);
@@ -295,6 +301,8 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       setProgress(0);
       setActiveStageIndex(0);
       setCompleted(false);
+      window.localStorage.removeItem("adversim-guided-launch");
+      setBuilderRequest(defaultBuilderRequest);
       clearInvestigationProgress();
     }
 
@@ -327,6 +335,8 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
       progress,
       activeStageIndex,
       completed,
+      builderRequest,
+      setBuilderRequest,
       selectedEvidenceEventIds,
       setSelectedEvidenceEventIds,
       investigationDebrief,
@@ -337,6 +347,7 @@ export function LiveSimulationProvider({ children }: { children: ReactNode }) {
     }),
     [
       activeStageIndex,
+      builderRequest,
       clearInvestigationProgress,
       completed,
       currentCase,

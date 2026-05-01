@@ -104,25 +104,6 @@ type VariantProfile = {
   learnerGoal: string;
 };
 
-const defaultRequest: SimulationRequest = {
-  scenario_id: "credential-compromise-chain",
-  target_user: "finance.admin",
-  target_host: "NYC-WKS-014",
-  intensity: "Medium",
-  duration: "30 minutes",
-  noise_level: "Realistic"
-};
-
-function getInitialBuilderRequest(): SimulationRequest {
-  if (typeof window === "undefined") {
-    return defaultRequest;
-  }
-
-  return window.localStorage.getItem("adversim-guided-launch") === "true"
-    ? { ...defaultRequest, duration: "15 minutes" }
-    : defaultRequest;
-}
-
 function getInitialMissionBanner() {
   if (typeof window === "undefined") {
     return false;
@@ -847,7 +828,6 @@ function evidenceToTelemetry(event: EvidenceEvent): TelemetryEvent {
 
 export default function BuilderPage() {
   const [scenarios, setScenarios] = useState<Scenario[]>(fallbackScenarios);
-  const [request, setRequest] = useState<SimulationRequest>(getInitialBuilderRequest);
   const [result] = useState<SimulationResult>(fallbackSimulation);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(analystSeed);
   const [chatInput, setChatInput] = useState("");
@@ -867,6 +847,8 @@ export default function BuilderPage() {
     progress,
     activeStageIndex,
     completed: streamCompleted,
+    builderRequest: request,
+    setBuilderRequest: setRequest,
     startSimulation
   } = useLiveSimulation();
   const audienceMode = isSocView ? "soc" : "beginner";
@@ -884,8 +866,11 @@ export default function BuilderPage() {
       setAiRemainingCalls(Number(status.remaining_session_calls ?? 0));
     });
 
-    window.localStorage.removeItem("adversim-guided-launch");
-  }, [sessionId]);
+    if (window.localStorage.getItem("adversim-guided-launch") === "true") {
+      setRequest((current) => ({ ...current, duration: "15 minutes" }));
+      window.localStorage.removeItem("adversim-guided-launch");
+    }
+  }, [sessionId, setRequest]);
 
   const intensityValue = intensityOptions.indexOf(request.intensity);
   const noiseValue = noiseOptions.indexOf(request.noise_level);
@@ -1274,12 +1259,12 @@ export default function BuilderPage() {
                       key={scenario.id}
                       type="button"
                       onClick={() => {
-                        setRequest({
-                          ...request,
+                        setRequest((current) => ({
+                          ...current,
                           scenario_id: scenario.id,
                           target_user: scenario.id === "insider-data-drift" ? "morgan.ellis" : "finance.admin",
                           target_host: scenario.id === "insider-data-drift" ? "NYC-FIN-021" : "NYC-WKS-014"
-                        });
+                        }));
                         setChatMessages([
                           {
                             id: `seed-${scenario.id}`,
@@ -1315,7 +1300,7 @@ export default function BuilderPage() {
               <span className="text-sm font-medium text-zinc-300">Target User</span>
               <input
                 value={request.target_user}
-                onChange={(event) => setRequest({ ...request, target_user: event.target.value })}
+                onChange={(event) => setRequest((current) => ({ ...current, target_user: event.target.value }))}
                 className="focus-ring technical mt-2 h-12 w-full rounded-[16px] border border-line bg-black/30 px-4 text-sm text-ink placeholder:text-zinc-600"
               />
             </label>
@@ -1324,7 +1309,7 @@ export default function BuilderPage() {
               <span className="text-sm font-medium text-zinc-300">Target Host</span>
               <input
                 value={request.target_host}
-                onChange={(event) => setRequest({ ...request, target_host: event.target.value })}
+                onChange={(event) => setRequest((current) => ({ ...current, target_host: event.target.value }))}
                 className="focus-ring technical mt-2 h-12 w-full rounded-[16px] border border-line bg-black/30 px-4 text-sm text-ink placeholder:text-zinc-600"
               />
             </label>
@@ -1333,14 +1318,14 @@ export default function BuilderPage() {
               label="Intensity"
               value={intensityValue}
               options={intensityOptions}
-              onChange={(value) => setRequest({ ...request, intensity: intensityOptions[value] })}
+              onChange={(value) => setRequest((current) => ({ ...current, intensity: intensityOptions[value] }))}
             />
 
             <ControlSlider
               label="Noise Level"
               value={noiseValue}
               options={noiseOptions}
-              onChange={(value) => setRequest({ ...request, noise_level: noiseOptions[value] })}
+              onChange={(value) => setRequest((current) => ({ ...current, noise_level: noiseOptions[value] }))}
             />
 
             <div className="rounded-[18px] border border-lime/25 bg-lime/[0.07] p-4 shadow-lime">
@@ -1370,7 +1355,7 @@ export default function BuilderPage() {
                     <button
                       key={duration}
                       type="button"
-                      onClick={() => setRequest({ ...request, duration })}
+                      onClick={() => setRequest((current) => ({ ...current, duration }))}
                       className={`focus-ring technical h-10 rounded-[14px] border text-[11px] transition ${
                         isActive
                           ? "border-lime bg-lime text-obsidian"
